@@ -9,20 +9,20 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f5f5f5; color: #333; padding-bottom: 120px; }
         
-        /* Header 修正：讓 LOGO 與文字垂直置中 */
+        /* Header 設定 */
         header { 
-            background-color: #fff; padding: 10px 15px; 
-            text-align: center; font-weight: bold; font-size: 1.2rem; 
+            background-color: #fff; padding: 15px; 
+            text-align: center; font-weight: bold; font-size: 1.3rem; 
             position: sticky; top: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
             z-index: 100; 
-            display: flex; align-items: center; justify-content: center; gap: 10px; 
+            display: flex; align-items: center; justify-content: center; gap: 15px; 
         }
         
-        /* LOGO 樣式設定 */
+        /* ★★★ LOGO 樣式設定 (已放大 100%) ★★★ */
         .header-logo { 
-            height: 40px; /* 設定高度，寬度自動 */
+            height: 80px; /* 原本 40px -> 改為 80px */
             width: auto; 
-            border-radius: 5px; /* 稍微圓角比較好看 */
+            border-radius: 8px; 
         }
 
         .container { padding: 15px; max-width: 600px; margin: 0 auto; }
@@ -222,18 +222,19 @@
     <script>
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSenpCJdVZWJ4seiaz4GimXwasppPbnX3o1pLGyrnIMWaJ_sqw/formResponse";
         
+        // 欄位 ID
         const FORM_FIELDS = {
-            orderContent: "entry.1214769536", // A
-            name:         "entry.537178649",  // B
-            phone:        "entry.1240845794", // C
-            payment:      "entry.36879241",   // D
-            delivery:     "entry.2126181854", // E
-            address:      "entry.1346414492", // F
-            date:         "entry.1111858266", // G
-            cups:         "entry.1482122773", // H
-            subtotal:     "entry.1558685102", // I
-            shipping:     "entry.1750953999", // J
-            totalPrice:   "entry.816848611"   // K
+            orderContent: "entry.1214769536", // A (訂購明細)
+            name:         "entry.537178649",  // B (姓名)
+            phone:        "entry.1240845794", // C (電話)
+            payment:      "entry.36879241",   // D (付款方式)
+            delivery:     "entry.2126181854", // E (取貨方式)
+            address:      "entry.1346414492", // F (地址)
+            date:         "entry.1111858266", // G (日期)
+            cups:         "entry.1482122773", // H (總杯數)
+            subtotal:     "entry.1558685102", // I (商品小計)
+            shipping:     "entry.1750953999", // J (運費小計)
+            totalPrice:   "entry.816848611"   // K (訂單總金額)
         };
 
         const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/uemRyQGLoTi6F3OUSEUgEtlr9QjZ1vTlUUVy930W3RPAgapaVWJM%252BrFuHzZRvpGA";
