@@ -9,7 +9,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f5f5f5; color: #333; padding-bottom: 120px; }
         
-        /* Header 設定 */
+        /* Header */
         header { 
             background-color: #fff; padding: 15px; 
             text-align: center; font-weight: bold; font-size: 1.3rem; 
@@ -17,19 +17,13 @@
             z-index: 100; 
             display: flex; align-items: center; justify-content: center; gap: 15px; 
         }
-        
-        /* ★★★ LOGO 樣式設定 (已放大 100%) ★★★ */
-        .header-logo { 
-            height: 80px; /* 原本 40px -> 改為 80px */
-            width: auto; 
-            border-radius: 8px; 
-        }
+        .header-logo { height: 80px; width: auto; border-radius: 8px; }
 
         .container { padding: 15px; max-width: 600px; margin: 0 auto; }
         .section-header { font-size: 1.1rem; font-weight: bold; margin: 25px 0 10px 0; display: flex; align-items: center; color: #444; }
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
         
-        /* 菜單 */
+        /* 菜單 Grid */
         .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .menu-item { background: #fff; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; text-align: center; }
         .menu-img-placeholder { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: bold; }
@@ -68,7 +62,6 @@
 
         /* 收據頁 */
         #receipt-view { display: none; background: #fff; min-height: 100vh; padding: 20px; text-align: center; }
-        /* 收據頁 LOGO */
         .receipt-logo { width: 80px; height: auto; margin-bottom: 15px; border-radius: 10px; }
         .receipt-icon { font-size: 3rem; color: #00c300; margin-bottom: 10px; }
         .receipt-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 5px; }
@@ -77,12 +70,10 @@
         .receipt-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
         .receipt-row.bold { font-weight: bold; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px; font-size: 1.1rem; }
         
-        /* 銀行資訊框 */
         .receipt-bank-box { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; border: 1px solid #c8e6c9; }
         .bank-title { color: #2e7d32; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
         .bank-detail { font-size: 1.1rem; font-weight: bold; color: #333; letter-spacing: 1px; }
         
-        /* 截圖提醒框 */
         .screenshot-box { background: #fff8e1; border: 2px dashed #ffc107; padding: 15px; margin: 20px 0; border-radius: 10px; color: #ff6f00; display: flex; align-items: center; justify-content: center; gap: 10px; text-align: left; }
         .screenshot-icon { font-size: 1.8rem; }
         .screenshot-text { font-size: 1rem; font-weight: bold; line-height: 1.4; }
@@ -147,7 +138,7 @@
                 <div class="form-group">
                     <label class="form-label" id="date-label">取貨/到貨日期</label>
                     <input type="date" id="pickup-date" class="form-input">
-                    <div style="font-size:0.8rem; color:#888; margin-top:3px;" id="date-hint"></div>
+                    <div style="font-size:0.85rem; color:#d63031; margin-top:5px; font-weight:bold;" id="date-hint"></div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">姓名</label>
@@ -222,19 +213,18 @@
     <script>
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSenpCJdVZWJ4seiaz4GimXwasppPbnX3o1pLGyrnIMWaJ_sqw/formResponse";
         
-        // 欄位 ID
         const FORM_FIELDS = {
-            orderContent: "entry.1214769536", // A (訂購明細)
-            name:         "entry.537178649",  // B (姓名)
-            phone:        "entry.1240845794", // C (電話)
-            payment:      "entry.36879241",   // D (付款方式)
-            delivery:     "entry.2126181854", // E (取貨方式)
-            address:      "entry.1346414492", // F (地址)
-            date:         "entry.1111858266", // G (日期)
-            cups:         "entry.1482122773", // H (總杯數)
-            subtotal:     "entry.1558685102", // I (商品小計)
-            shipping:     "entry.1750953999", // J (運費小計)
-            totalPrice:   "entry.816848611"   // K (訂單總金額)
+            orderContent: "entry.1214769536", // A
+            name:         "entry.537178649",  // B
+            phone:        "entry.1240845794", // C
+            payment:      "entry.36879241",   // D
+            delivery:     "entry.2126181854", // E
+            address:      "entry.1346414492", // F
+            date:         "entry.1111858266", // G
+            cups:         "entry.1482122773", // H
+            subtotal:     "entry.1558685102", // I
+            shipping:     "entry.1750953999", // J
+            totalPrice:   "entry.816848611"   // K
         };
 
         const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/uemRyQGLoTi6F3OUSEUgEtlr9QjZ1vTlUUVy930W3RPAgapaVWJM%252BrFuHzZRvpGA";
@@ -279,24 +269,41 @@
             renderCart();
         }
 
+        // ★★★ 更新日期設定邏輯 (12點前後判斷) ★★★
         function updateDateSettings(mode) {
-            const today = new Date();
+            const now = new Date();
             const hint = document.getElementById('date-hint');
             const addressRow = document.getElementById('address-row');
+            
+            let daysToAdd = 0;
 
             if (mode === 'delivery') {
-                today.setDate(today.getDate() + 3);
-                hint.innerText = "提醒：宅配需預留物流時間，僅可選擇三天後";
+                // 宅配：固定 +3 天
+                daysToAdd = 3;
+                hint.innerText = "提醒：宅配需預留物流時間，最快選擇三天後";
                 addressRow.style.display = 'block';
             } else {
-                today.setDate(today.getDate() + 1);
-                hint.innerText = "";
+                // 自取：判斷時間
+                const currentHour = now.getHours();
+                
+                if (currentHour < 12) {
+                    // 12點前 -> 明天 (D+1)
+                    daysToAdd = 1;
+                    hint.innerText = "提醒：中午 12:00 前下單，最快可選明天自取";
+                } else {
+                    // 12點後 -> 大後天 (D+3)
+                    daysToAdd = 3;
+                    hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取";
+                }
                 addressRow.style.display = 'none';
             }
 
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
+            // 設定日期物件到正確的天數
+            now.setDate(now.getDate() + daysToAdd);
+
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
             const minDate = `${yyyy}-${mm}-${dd}`;
             
             dateInput.min = minDate;
