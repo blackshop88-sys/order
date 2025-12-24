@@ -45,7 +45,10 @@
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: #666; }
         .form-input { width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #ddd; border-radius: 8px; background: #fdfdfd; outline: none; }
+        /* 備註欄位特別樣式 */
+        textarea.form-input { resize: vertical; min-height: 80px; font-family: inherit; }
         .form-input:focus { border-color: #00c300; }
+        
         .radio-group { display: flex; gap: 15px; margin-bottom: 15px; }
         .radio-label { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
         .radio-input:checked + span { color: #00c300; font-weight: bold; }
@@ -162,7 +165,8 @@
                             <option value="新竹縣">新竹縣</option>
                             <option value="苗栗縣">苗栗縣</option>
                             <option value="台中市">台中市</option>
-                            <option value="彰化市">彰化市</option> <option value="彰化縣">彰化縣</option>
+                            <option value="彰化市">彰化市</option>
+                            <option value="彰化縣">彰化縣</option>
                             <option value="南投縣">南投縣</option>
                             <option value="雲林縣">雲林縣</option>
                             <option value="嘉義市">嘉義市</option>
@@ -179,6 +183,11 @@
                         </select>
                         <input type="text" id="cust-addr-detail" class="form-input" placeholder="鄉鎮市區 / 街道 / 門號">
                     </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="form-label">備註 (每盒 6 入，若需分裝請填寫)</label>
+                    <textarea id="cust-remarks" class="form-input" rows="2" placeholder="例如：請幫我分成 2 盒..."></textarea>
                 </div>
 
             </div>
@@ -217,6 +226,10 @@
             <div class="receipt-row"><span>日期</span><span id="receipt-date"></span></div>
             <div class="receipt-row" id="receipt-address-row" style="display:none;">
                 <span>地址</span><span id="receipt-address"></span>
+            </div>
+            <div class="receipt-row" id="receipt-remarks-row" style="display:none; flex-direction:column; align-items:flex-start;">
+                <span style="color:#666; font-size:0.9rem;">備註</span>
+                <span id="receipt-remarks" style="color:#333; font-weight:bold; margin-top:3px;"></span>
             </div>
         </div>
 
@@ -298,7 +311,6 @@
             renderCart();
         }
 
-        // ★★★ 日期設定邏輯更新 (自取: 後天/大後天) ★★★
         function updateDateSettings(mode) {
             const now = new Date();
             const currentHour = now.getHours();
@@ -317,12 +329,12 @@
                 }
                 addressRow.style.display = 'block';
             } else {
-                // 自取
+                // 自取邏輯更新
                 if (currentHour < 12) {
-                    daysToAdd = 2; // 改為後天 (D+2)
+                    daysToAdd = 2; // 改為後天
                     hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取";
                 } else {
-                    daysToAdd = 3; // 改為大後天 (D+3)
+                    daysToAdd = 3; // 改為大後天
                     hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取";
                 }
                 addressRow.style.display = 'none';
@@ -397,6 +409,7 @@
             const date = document.getElementById('pickup-date').value;
             const delivery = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const payment = document.querySelector('input[name="paymentMethod"]:checked').value;
+            const remarks = document.getElementById('cust-remarks').value.trim(); // 取得備註
             
             let fullAddress = "";
             const city = document.getElementById('cust-city').value;
@@ -457,6 +470,7 @@
             confirmMsg += `姓名：${name}\n`;
             confirmMsg += `電話：${phone}\n`;
             if(delivery === '宅配') confirmMsg += `地址：${fullAddress}\n`;
+            if(remarks) confirmMsg += `備註：${remarks}\n`;
             confirmMsg += `付款：${payment === 'linepay' ? 'LINE Pay' : '銀行匯款'}\n`;
             confirmMsg += `\n請確認資料無誤，點擊「確定」送出訂單。`;
 
@@ -467,8 +481,13 @@
             loadingOverlay.style.display = 'flex';
             document.getElementById('submit-btn').disabled = true;
 
+            // 將備註合併到訂購明細欄位，方便查看
+            let fullOrderInfo = orderDetails + ` [共${totalCups}杯]`;
+            if(shippingFee > 0) fullOrderInfo += ` [運費$${shippingFee}]`;
+            if(remarks) fullOrderInfo += ` [備註: ${remarks}]`;
+
             let formData = new FormData();
-            formData.append(FORM_FIELDS.orderContent, orderDetails); 
+            formData.append(FORM_FIELDS.orderContent, fullOrderInfo); 
             formData.append(FORM_FIELDS.name, name);                 
             formData.append(FORM_FIELDS.phone, phone);               
             formData.append(FORM_FIELDS.payment, payment);           
@@ -485,7 +504,7 @@
                 body: formData,
                 mode: "no-cors"
             }).then(() => {
-                showReceipt(name, phone, date, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee);
+                showReceipt(name, phone, date, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks);
                 loadingOverlay.style.display = 'none';
             }).catch(err => {
                 alert("訂單傳送失敗，請檢查網路或稍後再試。\n" + err);
@@ -494,7 +513,7 @@
             });
         }
 
-        function showReceipt(name, phone, date, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee) {
+        function showReceipt(name, phone, date, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks) {
             const now = new Date();
             document.getElementById('receipt-time').innerText = "訂單時間：" + now.toLocaleString('zh-TW', {hour12: false});
             
@@ -519,6 +538,14 @@
                 document.getElementById('receipt-address').innerText = fullAddress;
             } else {
                 document.getElementById('receipt-address-row').style.display = 'none';
+            }
+
+            // 顯示備註
+            if(remarks) {
+                document.getElementById('receipt-remarks-row').style.display = 'flex';
+                document.getElementById('receipt-remarks').innerText = remarks;
+            } else {
+                document.getElementById('receipt-remarks-row').style.display = 'none';
             }
 
             const bankArea = document.getElementById('bank-info-area');
