@@ -8,7 +8,8 @@
         /* --- 樣式設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f5f5f5; color: #333; padding-bottom: 120px; }
-        header { background-color: #fff; padding: 15px; text-align: center; font-weight: bold; font-size: 1.1rem; position: sticky; top: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 100; }
+        header { background-color: #fff; padding: 15px; text-align: center; font-weight: bold; font-size: 1.1rem; position: sticky; top: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 100; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .header-logo { width: 50px; height: auto; }
         .container { padding: 15px; max-width: 600px; margin: 0 auto; }
         .section-header { font-size: 1.1rem; font-weight: bold; margin: 25px 0 10px 0; display: flex; align-items: center; color: #444; }
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
@@ -52,6 +53,7 @@
 
         /* 收據頁 */
         #receipt-view { display: none; background: #fff; min-height: 100vh; padding: 20px; text-align: center; }
+        .receipt-logo { width: 60px; height: auto; margin-bottom: 10px; }
         .receipt-icon { font-size: 3rem; color: #00c300; margin-bottom: 10px; }
         .receipt-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 5px; }
         .receipt-time { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
@@ -64,13 +66,8 @@
         .bank-title { color: #2e7d32; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
         .bank-detail { font-size: 1.1rem; font-weight: bold; color: #333; letter-spacing: 1px; }
         
-        /* 截圖提醒框 (新增) */
-        .screenshot-box {
-            background: #fff8e1; border: 2px dashed #ffc107; padding: 15px;
-            margin: 20px 0; border-radius: 10px; color: #ff6f00;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            text-align: left;
-        }
+        /* 截圖提醒框 */
+        .screenshot-box { background: #fff8e1; border: 2px dashed #ffc107; padding: 15px; margin: 20px 0; border-radius: 10px; color: #ff6f00; display: flex; align-items: center; justify-content: center; gap: 10px; text-align: left; }
         .screenshot-icon { font-size: 1.8rem; }
         .screenshot-text { font-size: 1rem; font-weight: bold; line-height: 1.4; }
 
@@ -90,7 +87,10 @@
     </div>
 
     <div id="shop-view">
-        <header>鮮奶酪線上點餐</header>
+        <header>
+            <img src="image_0.png" alt="Logo" class="header-logo">
+            <span>鮮奶酪線上點餐</span>
+        </header>
 
         <div class="container">
             <div class="section-header">選擇口味</div>
@@ -107,12 +107,12 @@
                 <div class="form-label" style="margin-bottom:8px;">取貨方式</div>
                 <div class="radio-group">
                     <label class="radio-label">
-                        <input type="radio" name="deliveryMethod" value="自取" class="radio-input" checked onchange="toggleAddress(false)">
+                        <input type="radio" name="deliveryMethod" value="自取" class="radio-input" checked onchange="updateDateSettings('pickup')">
                         <span>自取</span>
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="deliveryMethod" value="宅配" class="radio-input" onchange="toggleAddress(true)">
-                        <span>宅配</span>
+                        <input type="radio" name="deliveryMethod" value="宅配" class="radio-input" onchange="updateDateSettings('delivery')">
+                        <span>宅配 (冷藏)</span>
                     </label>
                 </div>
 
@@ -129,8 +129,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">取貨/到貨日期</label>
+                    <label class="form-label" id="date-label">取貨/到貨日期</label>
                     <input type="date" id="pickup-date" class="form-input">
+                    <div style="font-size:0.8rem; color:#888; margin-top:3px;" id="date-hint"></div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">姓名</label>
@@ -159,6 +160,7 @@
     </div>
 
     <div id="receipt-view">
+        <img src="image_0.png" alt="Logo" class="receipt-logo">
         <div class="receipt-icon">✔</div>
         <div class="receipt-title">訂單已成立</div>
         <div class="receipt-time" id="receipt-time"></div>
@@ -166,12 +168,13 @@
         <div class="receipt-card">
             <div id="receipt-items"></div>
             <div class="receipt-row bold">
-                <span>總金額</span>
+                <span>總金額 (含運)</span>
                 <span style="color:#d63031" id="receipt-total"></span>
             </div>
         </div>
 
         <div class="receipt-card">
+            <div class="receipt-row"><span>總杯數</span><span id="receipt-cups"></span></div>
             <div class="receipt-row"><span>訂購人</span><span id="receipt-name"></span></div>
             <div class="receipt-row"><span>電話</span><span id="receipt-phone"></span></div>
             <div class="receipt-row"><span>取貨方式</span><span id="receipt-delivery"></span></div>
@@ -201,17 +204,21 @@
     </div>
 
     <script>
-        // 設定區
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSenpCJdVZWJ4seiaz4GimXwasppPbnX3o1pLGyrnIMWaJ_sqw/formResponse";
+        
+        // 欄位 ID
         const FORM_FIELDS = {
-            orderContent: "entry.1214769536", 
-            totalPrice:   "entry.816848611",  
-            name:         "entry.537178649",  
-            phone:        "entry.1240845794", 
-            delivery:     "entry.2126181854", 
-            date:         "entry.1111858266", 
-            address:      "entry.1346414492", 
-            payment:      "entry.36879241"    
+            orderContent: "entry.1214769536", // A (訂購明細)
+            name:         "entry.537178649",  // B (姓名)
+            phone:        "entry.1240845794", // C (電話)
+            payment:      "entry.36879241",   // D (付款方式)
+            delivery:     "entry.2126181854", // E (取貨方式)
+            address:      "entry.1346414492", // F (地址)
+            date:         "entry.1111858266", // G (日期)
+            cups:         "entry.1482122773", // H (總杯數)
+            subtotal:     "entry.1558685102", // I (商品小計)
+            shipping:     "entry.1750953999", // J (運費小計)
+            totalPrice:   "entry.816848611"   // K (訂單總金額)
         };
 
         const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/uemRyQGLoTi6F3OUSEUgEtlr9QjZ1vTlUUVy930W3RPAgapaVWJM%252BrFuHzZRvpGA";
@@ -225,7 +232,8 @@
             { id: 6, name: "伯爵紅茶", price: 50, color: "#795548", text: "#fff" },
             { id: 7, name: "香芋紫薯", price: 50, color: "#7b1fa2", text: "#fff" },
             { id: 8, name: "微醺", price: 50, color: "#c2185b", text: "#fff" },
-            { id: 9, name: "咖啡", price: 50, color: "#3e2723", text: "#fff" }
+            { id: 9, name: "咖啡", price: 50, color: "#3e2723", text: "#fff" },
+            { id: 10, name: "十薰茉莉綠", price: 50, color: "#66bb6a", text: "#fff" } // 新增口味
         ];
 
         let cart = []; 
@@ -251,12 +259,32 @@
                 `;
                 menuContainer.appendChild(div);
             });
-
-            const today = new Date();
-            today.setDate(today.getDate() + 1);
-            dateInput.value = today.toISOString().split('T')[0];
-            dateInput.min = today.toISOString().split('T')[0];
+            updateDateSettings('pickup');
             renderCart();
+        }
+
+        function updateDateSettings(mode) {
+            const today = new Date();
+            const hint = document.getElementById('date-hint');
+            const addressRow = document.getElementById('address-row');
+
+            if (mode === 'delivery') {
+                today.setDate(today.getDate() + 3);
+                hint.innerText = "提醒：宅配需預留物流時間，僅可選擇三天後";
+                addressRow.style.display = 'block';
+            } else {
+                today.setDate(today.getDate() + 1);
+                hint.innerText = "";
+                addressRow.style.display = 'none';
+            }
+
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const minDate = `${yyyy}-${mm}-${dd}`;
+            
+            dateInput.min = minDate;
+            dateInput.value = minDate;
         }
 
         function addToCart(id) {
@@ -309,48 +337,65 @@
             renderCart();
         }
 
-        function toggleAddress(show) {
-            document.getElementById('address-row').style.display = show ? 'block' : 'none';
-        }
-
         function processCheckout() {
             if (cart.length === 0) { alert("請先加入商品"); return; }
+
             const name = document.getElementById('cust-name').value.trim();
             const phone = document.getElementById('cust-phone').value.trim();
             const date = document.getElementById('pickup-date').value;
             const delivery = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const payment = document.querySelector('input[name="paymentMethod"]:checked').value;
             const address = document.getElementById('cust-address').value.trim();
+
             if(!name || !phone || !date) { alert("請填寫完整資料"); return; }
             if(delivery === '宅配' && !address) { alert("宅配請填寫地址"); return; }
 
             let rawTotal = 0;
+            let totalCups = 0;
             let orderDetails = ""; 
             let msgDetails = ""; 
             cart.forEach(p => {
                 rawTotal += p.price * p.quantity;
+                totalCups += p.quantity;
                 orderDetails += `${p.name}x${p.quantity}, `;
                 msgDetails += `- ${p.name} x ${p.quantity} = $${p.price*p.quantity}\n`;
             });
             
-            let finalPrice = rawTotal;
+            let productFinalPrice = rawTotal;
             let discountText = "";
             if (rawTotal >= 3000) {
-                finalPrice = Math.floor(rawTotal * 0.95);
+                productFinalPrice = Math.floor(rawTotal * 0.95);
                 orderDetails += `(滿額95折)`;
-                discountText = "(已折抵 5%)";
+                discountText = "(商品已折 5%)";
             }
 
+            let shippingFee = 0;
+            if (delivery === '宅配') {
+                if(totalCups <= 12) shippingFee = 130;
+                else if(totalCups <= 48) shippingFee = 170;
+                else shippingFee = 210;
+            }
+
+            let finalAllPrice = productFinalPrice + shippingFee;
+
             let confirmMsg = `【訂單確認】\n---------------------\n`;
+            confirmMsg += `總杯數：${totalCups} 杯\n`;
             confirmMsg += msgDetails;
             confirmMsg += `---------------------\n`;
-            confirmMsg += `總金額：$${finalPrice} ${discountText}\n`;
+            if(discountText) confirmMsg += `商品小計：$${productFinalPrice} ${discountText}\n`;
+            else confirmMsg += `商品小計：$${productFinalPrice}\n`;
+            
+            if(shippingFee > 0) confirmMsg += `運費：$${shippingFee} (新竹物流冷藏)\n`;
+            
+            confirmMsg += `===============\n`;
+            confirmMsg += `合計總金額：$${finalAllPrice}\n`;
+            confirmMsg += `===============\n`;
             confirmMsg += `取貨：${delivery}\n`;
             confirmMsg += `日期：${date}\n`;
             confirmMsg += `姓名：${name}\n`;
             confirmMsg += `電話：${phone}\n`;
             if(delivery === '宅配') confirmMsg += `地址：${address}\n`;
-            confirmMsg += `付款方式：${payment === 'linepay' ? 'LINE Pay' : '銀行匯款'}\n`;
+            confirmMsg += `付款：${payment === 'linepay' ? 'LINE Pay' : '銀行匯款'}\n`;
             confirmMsg += `\n請確認資料無誤，點擊「確定」送出訂單。`;
 
             if (!confirm(confirmMsg)) {
@@ -361,21 +406,24 @@
             document.getElementById('submit-btn').disabled = true;
 
             let formData = new FormData();
-            formData.append(FORM_FIELDS.orderContent, orderDetails);
-            formData.append(FORM_FIELDS.totalPrice, finalPrice);
-            formData.append(FORM_FIELDS.name, name);
-            formData.append(FORM_FIELDS.phone, phone);
-            formData.append(FORM_FIELDS.delivery, delivery);
-            formData.append(FORM_FIELDS.date, date);
-            formData.append(FORM_FIELDS.address, address);
-            formData.append(FORM_FIELDS.payment, payment);
+            formData.append(FORM_FIELDS.orderContent, orderDetails); // A
+            formData.append(FORM_FIELDS.name, name);                 // B
+            formData.append(FORM_FIELDS.phone, phone);               // C
+            formData.append(FORM_FIELDS.payment, payment);           // D
+            formData.append(FORM_FIELDS.delivery, delivery);         // E
+            formData.append(FORM_FIELDS.address, address);           // F
+            formData.append(FORM_FIELDS.date, date);                 // G
+            formData.append(FORM_FIELDS.cups, totalCups);            // H
+            formData.append(FORM_FIELDS.subtotal, productFinalPrice); // I
+            formData.append(FORM_FIELDS.shipping, shippingFee);       // J
+            formData.append(FORM_FIELDS.totalPrice, finalAllPrice);  // K
 
             fetch(GOOGLE_FORM_URL, {
                 method: "POST",
                 body: formData,
                 mode: "no-cors"
             }).then(() => {
-                showReceipt(name, phone, date, delivery, payment, address, finalPrice, rawTotal);
+                showReceipt(name, phone, date, delivery, payment, address, finalAllPrice, totalCups, shippingFee);
                 loadingOverlay.style.display = 'none';
             }).catch(err => {
                 alert("訂單傳送失敗，請檢查網路或稍後再試。\n" + err);
@@ -384,7 +432,7 @@
             });
         }
 
-        function showReceipt(name, phone, date, delivery, payment, address, finalPrice, rawTotal) {
+        function showReceipt(name, phone, date, delivery, payment, address, finalAllPrice, totalCups, shippingFee) {
             const now = new Date();
             document.getElementById('receipt-time').innerText = "訂單時間：" + now.toLocaleString('zh-TW', {hour12: false});
             
@@ -392,12 +440,13 @@
             cart.forEach(p => {
                 itemsHtml += `<div class="receipt-row"><span>${p.name} x ${p.quantity}</span><span>$${p.price * p.quantity}</span></div>`;
             });
-            if(rawTotal > finalPrice) {
-                itemsHtml += `<div class="receipt-row" style="color:#ff4757;"><span>滿額折扣 (95折)</span><span>-$${rawTotal - finalPrice}</span></div>`;
+            if(shippingFee > 0) {
+                itemsHtml += `<div class="receipt-row bold" style="border-top:none; margin-top:5px; font-size:0.95rem;"><span>運費 (新竹物流)</span><span>$${shippingFee}</span></div>`;
             }
             document.getElementById('receipt-items').innerHTML = itemsHtml;
-            document.getElementById('receipt-total').innerText = "NT$ " + finalPrice;
+            document.getElementById('receipt-total').innerText = "NT$ " + finalAllPrice;
 
+            document.getElementById('receipt-cups').innerText = totalCups + " 杯";
             document.getElementById('receipt-name').innerText = name;
             document.getElementById('receipt-phone').innerText = phone;
             document.getElementById('receipt-delivery').innerText = delivery;
@@ -417,7 +466,7 @@
                 bankArea.style.display = 'none';
                 lineBtn.style.display = 'block';
                 lineBtn.href = LINE_PAY_LINK;
-                lineBtn.innerText = "前往 LINE Pay 付款 ($" + finalPrice + ")";
+                lineBtn.innerText = "前往 LINE Pay 付款 ($" + finalAllPrice + ")";
             } else {
                 bankArea.style.display = 'block';
                 lineBtn.style.display = 'none';
