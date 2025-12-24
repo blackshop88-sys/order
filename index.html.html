@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>鮮奶酪訂購單</title>
     <style>
-        /* --- 樣式設定 --- */
+        /* --- 基礎樣式 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f5f5f5; color: #333; padding-bottom: 120px; }
         
@@ -23,7 +23,7 @@
         .section-header { font-size: 1.1rem; font-weight: bold; margin: 25px 0 10px 0; display: flex; align-items: center; color: #444; }
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
         
-        /* 菜單 Grid */
+        /* 菜單 */
         .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .menu-item { background: #fff; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; text-align: center; }
         .menu-img-placeholder { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: bold; }
@@ -162,7 +162,7 @@
                             <option value="新竹縣">新竹縣</option>
                             <option value="苗栗縣">苗栗縣</option>
                             <option value="台中市">台中市</option>
-                            <option value="彰化縣">彰化縣</option>
+                            <option value="彰化市">彰化市</option> <option value="彰化縣">彰化縣</option>
                             <option value="南投縣">南投縣</option>
                             <option value="雲林縣">雲林縣</option>
                             <option value="嘉義市">嘉義市</option>
@@ -298,6 +298,7 @@
             renderCart();
         }
 
+        // ★★★ 日期設定邏輯更新 (自取: 後天/大後天) ★★★
         function updateDateSettings(mode) {
             const now = new Date();
             const currentHour = now.getHours();
@@ -316,11 +317,12 @@
                 }
                 addressRow.style.display = 'block';
             } else {
+                // 自取
                 if (currentHour < 12) {
-                    daysToAdd = 1; 
-                    hint.innerText = "提醒：中午 12:00 前下單，最快可選明天自取";
+                    daysToAdd = 2; // 改為後天 (D+2)
+                    hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取";
                 } else {
-                    daysToAdd = 3; 
+                    daysToAdd = 3; // 改為大後天 (D+3)
                     hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取";
                 }
                 addressRow.style.display = 'none';
@@ -396,20 +398,18 @@
             const delivery = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const payment = document.querySelector('input[name="paymentMethod"]:checked').value;
             
-            // ★★★ 地址驗證與組合 ★★★
             let fullAddress = "";
             const city = document.getElementById('cust-city').value;
             const detailAddr = document.getElementById('cust-addr-detail').value.trim();
 
             if(!name || !phone || !date) { alert("請填寫完整資料"); return; }
             
-            // 如果選宅配，必須檢查縣市與詳細地址
             if(delivery === '宅配') {
                 if(!city || !detailAddr) {
                     alert("宅配請務必選擇縣市並填寫詳細地址");
                     return;
                 }
-                fullAddress = city + detailAddr; // 組合地址
+                fullAddress = city + detailAddr;
             }
 
             let rawTotal = 0;
@@ -468,17 +468,17 @@
             document.getElementById('submit-btn').disabled = true;
 
             let formData = new FormData();
-            formData.append(FORM_FIELDS.orderContent, orderDetails); // A
-            formData.append(FORM_FIELDS.name, name);                 // B
-            formData.append(FORM_FIELDS.phone, phone);               // C
-            formData.append(FORM_FIELDS.payment, payment);           // D
-            formData.append(FORM_FIELDS.delivery, delivery);         // E
-            formData.append(FORM_FIELDS.address, fullAddress);       // F (傳送完整地址)
-            formData.append(FORM_FIELDS.date, date);                 // G
-            formData.append(FORM_FIELDS.cups, totalCups);            // H
-            formData.append(FORM_FIELDS.subtotal, productFinalPrice); // I
-            formData.append(FORM_FIELDS.shipping, shippingFee);       // J
-            formData.append(FORM_FIELDS.totalPrice, finalAllPrice);  // K
+            formData.append(FORM_FIELDS.orderContent, orderDetails); 
+            formData.append(FORM_FIELDS.name, name);                 
+            formData.append(FORM_FIELDS.phone, phone);               
+            formData.append(FORM_FIELDS.payment, payment);           
+            formData.append(FORM_FIELDS.delivery, delivery);         
+            formData.append(FORM_FIELDS.address, fullAddress);       
+            formData.append(FORM_FIELDS.date, date);                 
+            formData.append(FORM_FIELDS.cups, totalCups);            
+            formData.append(FORM_FIELDS.subtotal, productFinalPrice); 
+            formData.append(FORM_FIELDS.shipping, shippingFee);       
+            formData.append(FORM_FIELDS.totalPrice, finalAllPrice);  
 
             fetch(GOOGLE_FORM_URL, {
                 method: "POST",
