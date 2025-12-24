@@ -8,8 +8,23 @@
         /* --- 樣式設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f5f5f5; color: #333; padding-bottom: 120px; }
-        header { background-color: #fff; padding: 15px; text-align: center; font-weight: bold; font-size: 1.1rem; position: sticky; top: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 100; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .header-logo { width: 50px; height: auto; }
+        
+        /* Header 修正：讓 LOGO 與文字垂直置中 */
+        header { 
+            background-color: #fff; padding: 10px 15px; 
+            text-align: center; font-weight: bold; font-size: 1.2rem; 
+            position: sticky; top: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+            z-index: 100; 
+            display: flex; align-items: center; justify-content: center; gap: 10px; 
+        }
+        
+        /* LOGO 樣式設定 */
+        .header-logo { 
+            height: 40px; /* 設定高度，寬度自動 */
+            width: auto; 
+            border-radius: 5px; /* 稍微圓角比較好看 */
+        }
+
         .container { padding: 15px; max-width: 600px; margin: 0 auto; }
         .section-header { font-size: 1.1rem; font-weight: bold; margin: 25px 0 10px 0; display: flex; align-items: center; color: #444; }
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
@@ -53,7 +68,8 @@
 
         /* 收據頁 */
         #receipt-view { display: none; background: #fff; min-height: 100vh; padding: 20px; text-align: center; }
-        .receipt-logo { width: 60px; height: auto; margin-bottom: 10px; }
+        /* 收據頁 LOGO */
+        .receipt-logo { width: 80px; height: auto; margin-bottom: 15px; border-radius: 10px; }
         .receipt-icon { font-size: 3rem; color: #00c300; margin-bottom: 10px; }
         .receipt-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 5px; }
         .receipt-time { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
@@ -88,7 +104,7 @@
 
     <div id="shop-view">
         <header>
-            <img src="image_0.png" alt="Logo" class="header-logo">
+            <img src="logo.jpg" alt="Logo" class="header-logo">
             <span>鮮奶酪線上點餐</span>
         </header>
 
@@ -160,7 +176,7 @@
     </div>
 
     <div id="receipt-view">
-        <img src="image_0.png" alt="Logo" class="receipt-logo">
+        <img src="logo.jpg" alt="Logo" class="receipt-logo">
         <div class="receipt-icon">✔</div>
         <div class="receipt-title">訂單已成立</div>
         <div class="receipt-time" id="receipt-time"></div>
@@ -206,19 +222,18 @@
     <script>
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSenpCJdVZWJ4seiaz4GimXwasppPbnX3o1pLGyrnIMWaJ_sqw/formResponse";
         
-        // 欄位 ID
         const FORM_FIELDS = {
-            orderContent: "entry.1214769536", // A (訂購明細)
-            name:         "entry.537178649",  // B (姓名)
-            phone:        "entry.1240845794", // C (電話)
-            payment:      "entry.36879241",   // D (付款方式)
-            delivery:     "entry.2126181854", // E (取貨方式)
-            address:      "entry.1346414492", // F (地址)
-            date:         "entry.1111858266", // G (日期)
-            cups:         "entry.1482122773", // H (總杯數)
-            subtotal:     "entry.1558685102", // I (商品小計)
-            shipping:     "entry.1750953999", // J (運費小計)
-            totalPrice:   "entry.816848611"   // K (訂單總金額)
+            orderContent: "entry.1214769536", // A
+            name:         "entry.537178649",  // B
+            phone:        "entry.1240845794", // C
+            payment:      "entry.36879241",   // D
+            delivery:     "entry.2126181854", // E
+            address:      "entry.1346414492", // F
+            date:         "entry.1111858266", // G
+            cups:         "entry.1482122773", // H
+            subtotal:     "entry.1558685102", // I
+            shipping:     "entry.1750953999", // J
+            totalPrice:   "entry.816848611"   // K
         };
 
         const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/uemRyQGLoTi6F3OUSEUgEtlr9QjZ1vTlUUVy930W3RPAgapaVWJM%252BrFuHzZRvpGA";
@@ -233,7 +248,7 @@
             { id: 7, name: "香芋紫薯", price: 50, color: "#7b1fa2", text: "#fff" },
             { id: 8, name: "微醺", price: 50, color: "#c2185b", text: "#fff" },
             { id: 9, name: "咖啡", price: 50, color: "#3e2723", text: "#fff" },
-            { id: 10, name: "十薰茉莉綠", price: 50, color: "#66bb6a", text: "#fff" } // 新增口味
+            { id: 10, name: "十薰茉莉綠", price: 50, color: "#66bb6a", text: "#fff" }
         ];
 
         let cart = []; 
