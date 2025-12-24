@@ -353,10 +353,10 @@
                 let daysToAdd = 0;
                 if (currentHour < 12) {
                     daysToAdd = 2; 
-                    hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取 (週日、週一公休)";
+                    hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取 (週日、週一公休)如遇滿單另行通知約期";
                 } else {
                     daysToAdd = 3; 
-                    hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取 (週日、週一公休)";
+                    hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取 (週日、週一公休)如遇滿單另行通知約期";
                 }
 
                 let targetDate = new Date(now);
@@ -633,4 +633,5 @@
     </script>
 </body>
 </html>
+
 
