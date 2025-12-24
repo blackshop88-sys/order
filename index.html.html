@@ -45,7 +45,6 @@
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: #666; }
         .form-input { width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #ddd; border-radius: 8px; background: #fdfdfd; outline: none; }
-        /* 備註欄位特別樣式 */
         textarea.form-input { resize: vertical; min-height: 80px; font-family: inherit; }
         .form-input:focus { border-color: #00c300; }
         
@@ -140,7 +139,7 @@
 
                 <div class="form-group">
                     <label class="form-label" id="date-label">取貨/到貨日期</label>
-                    <input type="date" id="pickup-date" class="form-input">
+                    <input type="date" id="pickup-date" class="form-input" onchange="validateDate()">
                     <div style="font-size:0.85rem; color:#d63031; margin-top:5px; font-weight:bold;" id="date-hint"></div>
                 </div>
                 <div class="form-group">
@@ -311,6 +310,7 @@
             renderCart();
         }
 
+        // ★★★ 核心：日期設定邏輯 ★★★
         function updateDateSettings(mode) {
             const now = new Date();
             const currentHour = now.getHours();
@@ -320,35 +320,62 @@
             let daysToAdd = 0;
 
             if (mode === 'delivery') {
+                // 宅配邏輯
                 if (currentHour < 12) {
-                    daysToAdd = 3; 
-                    hint.innerText = "提醒：中午 12:00 前下單，宅配最快 3 天後到貨";
+                    daysToAdd = 3; // 12點前 -> 3天後
+                    hint.innerText = "提醒：中午 12:00 前下單，宅配最快 3 天後到貨 (週日、週一不配送)";
                 } else {
-                    daysToAdd = 4; 
-                    hint.innerText = "提醒：已過中午 12:00 截單，宅配最快 4 天後到貨";
+                    daysToAdd = 4; // 12點後 -> 4天後
+                    hint.innerText = "提醒：已過中午 12:00 截單，宅配最快 4 天後到貨 (週日、週一不配送)";
                 }
                 addressRow.style.display = 'block';
             } else {
-                // 自取
+                // 自取邏輯
                 if (currentHour < 12) {
-                    daysToAdd = 2; // 改為後天 (D+2)
+                    daysToAdd = 2; // 12點前 -> 後天
                     hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取";
                 } else {
-                    daysToAdd = 3; // 改為大後天 (D+3)
+                    daysToAdd = 3; // 12點後 -> 大後天
                     hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取";
                 }
                 addressRow.style.display = 'none';
             }
 
-            now.setDate(now.getDate() + daysToAdd);
+            // 設定日期
+            let targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + daysToAdd);
 
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
+            // ★★★ 宅配特殊檢查：避開週日(0)與週一(1) ★★★
+            if (mode === 'delivery') {
+                while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+            }
+
+            const yyyy = targetDate.getFullYear();
+            const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(targetDate.getDate()).padStart(2, '0');
             const minDate = `${yyyy}-${mm}-${dd}`;
             
             dateInput.min = minDate;
             dateInput.value = minDate;
+        }
+
+        // ★★★ 驗證使用者手動選的日期 ★★★
+        function validateDate() {
+            const mode = document.querySelector('input[name="deliveryMethod"]:checked').value;
+            const dateInput = document.getElementById('pickup-date');
+            
+            if (mode === '宅配' && dateInput.value) {
+                const selectedDate = new Date(dateInput.value);
+                const day = selectedDate.getDay();
+                
+                // 如果選到週日(0)或週一(1)
+                if (day === 0 || day === 1) {
+                    alert("抱歉，宅配逢週日、週一不配送，請選擇週二至週六的日期。");
+                    updateDateSettings('delivery'); // 重置回有效的最小日期
+                }
+            }
         }
 
         function addToCart(id) {
