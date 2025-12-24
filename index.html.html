@@ -45,6 +45,8 @@
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: #666; }
         .form-input { width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #ddd; border-radius: 8px; background: #fdfdfd; outline: none; }
+        /* 禁用狀態樣式 */
+        .form-input:disabled { background-color: #e9ecef; cursor: not-allowed; color: #6c757d; }
         textarea.form-input { resize: vertical; min-height: 80px; font-family: inherit; }
         .form-input:focus { border-color: #00c300; }
         
@@ -58,7 +60,6 @@
         .price-area { display: flex; flex-direction: column; }
         .total-price { font-size: 1.3rem; font-weight: bold; color: #d63031; }
         .discount-tag { font-size: 0.75rem; background: #ff4757; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px; display: none; }
-        /* 優惠提示字 */
         .promo-hint { font-size: 0.75rem; color: #666; margin-top: 4px; line-height: 1.3; }
         
         .checkout-btn { background-color: #00c300; color: #fff; border: none; padding: 12px 35px; border-radius: 25px; font-size: 1rem; font-weight: bold; cursor: pointer; }
@@ -317,70 +318,64 @@
             renderCart();
         }
 
-        // ★★★ 更新：日期邏輯 (自取避開週日週一) ★★★
+        // ★★★ 更新日期設定邏輯 (包含宅配禁用與自取邏輯) ★★★
         function updateDateSettings(mode) {
-            const now = new Date();
-            const currentHour = now.getHours();
+            const dateInput = document.getElementById('pickup-date');
             const hint = document.getElementById('date-hint');
             const addressRow = document.getElementById('address-row');
-            
-            let daysToAdd = 0;
+            const now = new Date();
+            const currentHour = now.getHours();
 
             if (mode === 'delivery') {
-                if (currentHour < 12) {
-                    daysToAdd = 3; 
-                    hint.innerText = "提醒：中午 12:00 前下單，宅配最快 3 天後到貨 (週日、週一不配送)";
-                } else {
-                    daysToAdd = 4; 
-                    hint.innerText = "提醒：已過中午 12:00 截單，宅配最快 4 天後到貨 (週日、週一不配送)";
-                }
+                // 宅配：禁用日期選擇
+                dateInput.disabled = true;
+                dateInput.value = ''; // 清空
+                hint.innerText = "提醒：宅配默認不指定日期出貨，若需指定日期請先與店家詢問。";
                 addressRow.style.display = 'block';
             } else {
+                // 自取：啟用日期選擇 + 邏輯判斷
+                dateInput.disabled = false;
+                addressRow.style.display = 'none';
+
+                let daysToAdd = 0;
                 if (currentHour < 12) {
-                    daysToAdd = 2; 
+                    daysToAdd = 2; // 後天 (D+2)
                     hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取 (週日、週一公休)";
                 } else {
-                    daysToAdd = 3; 
+                    daysToAdd = 3; // 大後天 (D+3)
                     hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取 (週日、週一公休)";
                 }
-                addressRow.style.display = 'none';
+
+                let targetDate = new Date(now);
+                targetDate.setDate(targetDate.getDate() + daysToAdd);
+
+                // 自動避開週日(0)與週一(1)
+                while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+
+                const yyyy = targetDate.getFullYear();
+                const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(targetDate.getDate()).padStart(2, '0');
+                const minDate = `${yyyy}-${mm}-${dd}`;
+                
+                dateInput.min = minDate;
+                dateInput.value = minDate;
             }
-
-            let targetDate = new Date(now);
-            targetDate.setDate(targetDate.getDate() + daysToAdd);
-
-            // ★★★ 核心修正：不管是自取或宅配，都避開週日(0)與週一(1) ★★★
-            while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
-                targetDate.setDate(targetDate.getDate() + 1);
-            }
-
-            const yyyy = targetDate.getFullYear();
-            const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
-            const dd = String(targetDate.getDate()).padStart(2, '0');
-            const minDate = `${yyyy}-${mm}-${dd}`;
-            
-            dateInput.min = minDate;
-            dateInput.value = minDate;
         }
 
+        // ★★★ 驗證日期 (手動選時) ★★★
         function validateDate() {
-            const mode = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const dateInput = document.getElementById('pickup-date');
-            
-            if (!dateInput.value) return;
+            if (dateInput.disabled || !dateInput.value) return;
 
             const selectedDate = new Date(dateInput.value);
             const day = selectedDate.getDay();
             
-            // ★★★ 手動防呆：週日(0) 與 週一(1) 都不行 ★★★
+            // 自取：週日(0)或週一(1)不可選
             if (day === 0 || day === 1) {
-                if(mode === '宅配') {
-                    alert("抱歉，宅配逢週日、週一不配送，請選擇週二至週六的日期。");
-                    updateDateSettings('delivery'); 
-                } else {
-                    alert("抱歉，週日與週一為公休日，請選擇其他日期。");
-                    updateDateSettings('pickup');
-                }
+                alert("抱歉，週日與週一為公休日，請選擇其他日期。");
+                updateDateSettings('pickup'); // 重置回最小有效日期
             }
         }
 
@@ -419,7 +414,7 @@
                 cartContainer.appendChild(div);
             });
             
-            // ★★★ 折扣邏輯 (顯示用) ★★★
+            // ★★★ 折扣顯示邏輯 ★★★
             if (rawTotal >= 5000) {
                 let discountedPrice = Math.floor(rawTotal * 0.9);
                 totalEl.innerText = discountedPrice.toLocaleString();
@@ -447,7 +442,7 @@
 
             const name = document.getElementById('cust-name').value.trim();
             const phone = document.getElementById('cust-phone').value.trim();
-            const date = document.getElementById('pickup-date').value;
+            const dateValue = document.getElementById('pickup-date').value;
             const delivery = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const payment = document.querySelector('input[name="paymentMethod"]:checked').value;
             const remarks = document.getElementById('cust-remarks').value.trim(); 
@@ -456,7 +451,9 @@
             const city = document.getElementById('cust-city').value;
             const detailAddr = document.getElementById('cust-addr-detail').value.trim();
 
-            if(!name || !phone || !date) { alert("請填寫完整資料"); return; }
+            // 驗證邏輯
+            if(!name || !phone) { alert("請填寫姓名與電話"); return; }
+            if(delivery === '自取' && !dateValue) { alert("請選擇自取日期"); return; }
             
             if(delivery === '宅配') {
                 if(!city || !detailAddr) {
@@ -464,6 +461,12 @@
                     return;
                 }
                 fullAddress = city + detailAddr;
+            }
+
+            // 處理日期文字 (宅配顯示特定文字)
+            let finalDateStr = dateValue;
+            if (delivery === '宅配') {
+                finalDateStr = "宅配不指定日期 (需指定請洽客服)";
             }
 
             let rawTotal = 0;
@@ -477,7 +480,7 @@
                 msgDetails += `- ${p.name} x ${p.quantity} = $${p.price*p.quantity}\n`;
             });
             
-            // ★★★ 結帳折扣計算 (滿5000打9折) ★★★
+            // ★★★ 結帳折扣計算 ★★★
             let productFinalPrice = rawTotal;
             let discountText = "";
             if (rawTotal >= 5000) {
@@ -512,7 +515,9 @@
             confirmMsg += `合計總金額：$${finalAllPrice}\n`;
             confirmMsg += `===============\n`;
             confirmMsg += `取貨：${delivery}\n`;
-            confirmMsg += `日期：${date}\n`;
+            if(delivery === '自取') confirmMsg += `日期：${finalDateStr}\n`;
+            else confirmMsg += `日期：${finalDateStr}\n`; // 宅配顯示提示字
+            
             confirmMsg += `姓名：${name}\n`;
             confirmMsg += `電話：${phone}\n`;
             if(delivery === '宅配') confirmMsg += `地址：${fullAddress}\n`;
@@ -538,7 +543,7 @@
             formData.append(FORM_FIELDS.payment, payment);           
             formData.append(FORM_FIELDS.delivery, delivery);         
             formData.append(FORM_FIELDS.address, fullAddress);       
-            formData.append(FORM_FIELDS.date, date);                 
+            formData.append(FORM_FIELDS.date, finalDateStr);         
             formData.append(FORM_FIELDS.cups, totalCups);            
             formData.append(FORM_FIELDS.subtotal, productFinalPrice); 
             formData.append(FORM_FIELDS.shipping, shippingFee);       
@@ -549,7 +554,7 @@
                 body: formData,
                 mode: "no-cors"
             }).then(() => {
-                showReceipt(name, phone, date, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks);
+                showReceipt(name, phone, finalDateStr, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks);
                 loadingOverlay.style.display = 'none';
             }).catch(err => {
                 alert("訂單傳送失敗，請檢查網路或稍後再試。\n" + err);
@@ -558,7 +563,7 @@
             });
         }
 
-        function showReceipt(name, phone, date, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks) {
+        function showReceipt(name, phone, dateStr, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks) {
             const now = new Date();
             document.getElementById('receipt-time').innerText = "訂單時間：" + now.toLocaleString('zh-TW', {hour12: false});
             
@@ -576,7 +581,7 @@
             document.getElementById('receipt-name').innerText = name;
             document.getElementById('receipt-phone').innerText = phone;
             document.getElementById('receipt-delivery').innerText = delivery;
-            document.getElementById('receipt-date').innerText = date;
+            document.getElementById('receipt-date').innerText = dateStr;
             
             if(delivery === '宅配') {
                 document.getElementById('receipt-address-row').style.display = 'flex';
