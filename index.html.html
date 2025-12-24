@@ -7,7 +7,7 @@
     <style>
         /* --- 基礎樣式 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #f5f5f5; color: #333; padding-bottom: 120px; }
+        body { background-color: #f5f5f5; color: #333; padding-bottom: 140px; /* 底部留白加大，容納提示字 */ }
         
         /* Header */
         header { 
@@ -58,6 +58,9 @@
         .price-area { display: flex; flex-direction: column; }
         .total-price { font-size: 1.3rem; font-weight: bold; color: #d63031; }
         .discount-tag { font-size: 0.75rem; background: #ff4757; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px; display: none; }
+        /* 新增：優惠提示字樣式 */
+        .promo-hint { font-size: 0.75rem; color: #666; margin-top: 4px; line-height: 1.3; }
+        
         .checkout-btn { background-color: #00c300; color: #fff; border: none; padding: 12px 35px; border-radius: 25px; font-size: 1rem; font-weight: bold; cursor: pointer; }
         .checkout-btn:disabled { background-color: #ccc; cursor: not-allowed; }
         .empty-cart-msg { text-align: center; color: #aaa; padding: 20px; font-size: 0.9rem; }
@@ -198,6 +201,10 @@
                     訂單金額 <span id="discount-badge" class="discount-tag">95折</span>
                 </div>
                 <div class="total-price">NT$ <span id="final-total">0</span></div>
+                <div class="promo-hint">
+                    滿 $3000 打 95 折 / 滿 $5000 打 9 折<br>
+                    滿 6 杯盒裝
+                </div>
             </div>
             <button class="checkout-btn" id="submit-btn" onclick="processCheckout()">確認送出</button>
         </div>
@@ -310,7 +317,7 @@
             renderCart();
         }
 
-        // ★★★ 核心：日期設定邏輯 ★★★
+        // ★★★ 日期邏輯更新 (自取避開週一 / 宅配避開週日週一) ★★★
         function updateDateSettings(mode) {
             const now = new Date();
             const currentHour = now.getHours();
@@ -320,34 +327,39 @@
             let daysToAdd = 0;
 
             if (mode === 'delivery') {
-                // 宅配邏輯
+                // 宅配
                 if (currentHour < 12) {
-                    daysToAdd = 3; // 12點前 -> 3天後
+                    daysToAdd = 3; 
                     hint.innerText = "提醒：中午 12:00 前下單，宅配最快 3 天後到貨 (週日、週一不配送)";
                 } else {
-                    daysToAdd = 4; // 12點後 -> 4天後
+                    daysToAdd = 4; 
                     hint.innerText = "提醒：已過中午 12:00 截單，宅配最快 4 天後到貨 (週日、週一不配送)";
                 }
                 addressRow.style.display = 'block';
             } else {
-                // 自取邏輯
+                // 自取
                 if (currentHour < 12) {
-                    daysToAdd = 2; // 12點前 -> 後天
-                    hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取";
+                    daysToAdd = 2; // 後天
+                    hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取 (週一公休)";
                 } else {
-                    daysToAdd = 3; // 12點後 -> 大後天
-                    hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取";
+                    daysToAdd = 3; // 大後天
+                    hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取 (週一公休)";
                 }
                 addressRow.style.display = 'none';
             }
 
-            // 設定日期
             let targetDate = new Date(now);
             targetDate.setDate(targetDate.getDate() + daysToAdd);
 
-            // ★★★ 宅配特殊檢查：避開週日(0)與週一(1) ★★★
+            // 避開特定日期邏輯
             if (mode === 'delivery') {
+                // 宅配：避開週日(0)和週一(1)
                 while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+            } else {
+                // 自取：避開週一(1)
+                while (targetDate.getDay() === 1) {
                     targetDate.setDate(targetDate.getDate() + 1);
                 }
             }
@@ -361,19 +373,26 @@
             dateInput.value = minDate;
         }
 
-        // ★★★ 驗證使用者手動選的日期 ★★★
+        // ★★★ 日期手動選擇驗證 ★★★
         function validateDate() {
             const mode = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const dateInput = document.getElementById('pickup-date');
             
-            if (mode === '宅配' && dateInput.value) {
-                const selectedDate = new Date(dateInput.value);
-                const day = selectedDate.getDay();
-                
-                // 如果選到週日(0)或週一(1)
+            if (!dateInput.value) return;
+
+            const selectedDate = new Date(dateInput.value);
+            const day = selectedDate.getDay();
+            
+            if (mode === '宅配') {
                 if (day === 0 || day === 1) {
                     alert("抱歉，宅配逢週日、週一不配送，請選擇週二至週六的日期。");
-                    updateDateSettings('delivery'); // 重置回有效的最小日期
+                    updateDateSettings('delivery'); 
+                }
+            } else {
+                // 自取：檢查是否選到週一
+                if (day === 1) {
+                    alert("抱歉，週一為公休日，請選擇其他日期。");
+                    updateDateSettings('pickup');
                 }
             }
         }
@@ -412,10 +431,18 @@
                 `;
                 cartContainer.appendChild(div);
             });
-            if (rawTotal >= 3000) {
+            
+            // ★★★ 折扣邏輯更新 (5000打9折, 3000打95折) ★★★
+            if (rawTotal >= 5000) {
+                let discountedPrice = Math.floor(rawTotal * 0.9);
+                totalEl.innerText = discountedPrice.toLocaleString();
+                discountBadge.style.display = 'inline-block'; 
+                discountBadge.innerText = '9折';
+            } else if (rawTotal >= 3000) {
                 let discountedPrice = Math.floor(rawTotal * 0.95);
                 totalEl.innerText = discountedPrice.toLocaleString();
                 discountBadge.style.display = 'inline-block'; 
+                discountBadge.innerText = '95折';
             } else {
                 totalEl.innerText = rawTotal.toLocaleString();
                 discountBadge.style.display = 'none';
@@ -463,9 +490,14 @@
                 msgDetails += `- ${p.name} x ${p.quantity} = $${p.price*p.quantity}\n`;
             });
             
+            // ★★★ 結帳時折扣計算更新 ★★★
             let productFinalPrice = rawTotal;
             let discountText = "";
-            if (rawTotal >= 3000) {
+            if (rawTotal >= 5000) {
+                productFinalPrice = Math.floor(rawTotal * 0.9);
+                orderDetails += `(滿額9折)`;
+                discountText = "(商品已折 10%)";
+            } else if (rawTotal >= 3000) {
                 productFinalPrice = Math.floor(rawTotal * 0.95);
                 orderDetails += `(滿額95折)`;
                 discountText = "(商品已折 5%)";
