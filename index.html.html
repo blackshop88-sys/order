@@ -23,13 +23,29 @@
         .section-header { font-size: 1.1rem; font-weight: bold; margin: 25px 0 10px 0; display: flex; align-items: center; color: #444; }
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
         
-        /* 菜單 */
-        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .menu-item { background: #fff; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; text-align: center; }
-        .menu-img-placeholder { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: bold; }
-        .menu-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 5px; }
-        .menu-price { color: #d63031; font-weight: bold; font-size: 0.95rem; margin-bottom: 8px; }
-        .add-btn { background: #fff; border: 1px solid #00c300; color: #00c300; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+        /* --- 菜單樣式 (修改圖片顯示) --- */
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .menu-item { 
+            background: #fff; border-radius: 12px; padding: 10px; 
+            display: flex; flex-direction: column; align-items: center; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee; text-align: center; 
+        }
+        /* 圖片樣式：正方形裁切 */
+        .menu-img { 
+            width: 100%; 
+            aspect-ratio: 1 / 1; /* 保持正方形 */
+            object-fit: cover;   /* 填滿不變形 */
+            border-radius: 8px; 
+            margin-bottom: 10px; 
+            background-color: #eee; /* 載入前底色 */
+        }
+        .menu-name { font-size: 1rem; font-weight: 600; margin-bottom: 5px; color: #333; }
+        .menu-price { color: #d63031; font-weight: bold; font-size: 1rem; margin-bottom: 8px; }
+        .add-btn { 
+            background: #fff; border: 1px solid #00c300; color: #00c300; 
+            padding: 6px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;
+            cursor: pointer; transition: 0.2s; 
+        }
         .add-btn:active { background: #00c300; color: #fff; }
 
         /* 購物車 */
@@ -45,8 +61,6 @@
         .form-group { margin-bottom: 15px; }
         .form-label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: #666; }
         .form-input { width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #ddd; border-radius: 8px; background: #fdfdfd; outline: none; }
-        /* 禁用狀態樣式 */
-        .form-input:disabled { background-color: #e9ecef; cursor: not-allowed; color: #6c757d; }
         textarea.form-input { resize: vertical; min-height: 80px; font-family: inherit; }
         .form-input:focus { border-color: #00c300; }
         
@@ -142,7 +156,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" id="date-label">取貨日期</label>
+                    <label class="form-label" id="date-label">取貨/到貨日期</label>
                     <input type="date" id="pickup-date" class="form-input" onchange="validateDate()">
                     <div style="font-size:0.85rem; color:#d63031; margin-top:5px; font-weight:bold;" id="date-hint"></div>
                 </div>
@@ -278,17 +292,18 @@
 
         const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/uemRyQGLoTi6F3OUSEUgEtlr9QjZ1vTlUUVy930W3RPAgapaVWJM%252BrFuHzZRvpGA";
         
+        // ★★★ 更新圖片檔名 (使用您的真實檔名) ★★★
         const menuData = [
-            { id: 1, name: "經典原味", price: 45, color: "#fdf5e6", text: "#555" },
-            { id: 2, name: "巧克力", price: 50, color: "#5d4037", text: "#fff" },
-            { id: 3, name: "抹茶", price: 50, color: "#388e3c", text: "#fff" },
-            { id: 4, name: "芝麻", price: 50, color: "#424242", text: "#fff" },
-            { id: 5, name: "泰奶", price: 50, color: "#e65100", text: "#fff" },
-            { id: 6, name: "伯爵紅茶", price: 50, color: "#795548", text: "#fff" },
-            { id: 7, name: "香芋紫薯", price: 50, color: "#7b1fa2", text: "#fff" },
-            { id: 8, name: "微醺", price: 50, color: "#c2185b", text: "#fff" },
-            { id: 9, name: "咖啡", price: 50, color: "#3e2723", text: "#fff" },
-            { id: 10, name: "十薰茉莉綠", price: 50, color: "#66bb6a", text: "#fff" }
+            { id: 1, name: "經典原味", price: 45, image: "230242.jpg" },
+            { id: 2, name: "巧克力", price: 50, image: "230240_0.jpg" },
+            { id: 3, name: "抹茶", price: 50, image: "230234_0.jpg" },
+            { id: 4, name: "芝麻", price: 50, image: "230239_0.jpg" },
+            { id: 5, name: "泰奶", price: 50, image: "230235_0.jpg" }, // 已更正 .hpg 為 .jpg
+            { id: 6, name: "伯爵紅茶", price: 50, image: "230241_0.jpg" },
+            { id: 7, name: "香芋紫薯", price: 50, image: "230237_0.jpg" },
+            { id: 8, name: "微醺", price: 50, image: "230233_0.jpg" },
+            { id: 9, name: "咖啡", price: 50, image: "230236_0.jpg" },
+            { id: 10, name: "十薰茉莉綠", price: 50, image: "230243.jpg" }
         ];
 
         let cart = []; 
@@ -304,10 +319,9 @@
             menuData.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'menu-item';
+                // 使用圖片
                 div.innerHTML = `
-                    <div class="menu-img-placeholder" style="background:${item.color}; color:${item.text}">
-                        ${item.name.substring(0,2)}
-                    </div>
+                    <img src="${item.image}" alt="${item.name}" class="menu-img">
                     <div class="menu-name">${item.name}</div>
                     <div class="menu-price">$${item.price}</div>
                     <button class="add-btn" onclick="addToCart(${item.id})">加入</button>
@@ -318,7 +332,6 @@
             renderCart();
         }
 
-        // ★★★ 更新日期設定邏輯 (包含宅配禁用與自取邏輯) ★★★
         function updateDateSettings(mode) {
             const dateInput = document.getElementById('pickup-date');
             const hint = document.getElementById('date-hint');
@@ -327,29 +340,29 @@
             const currentHour = now.getHours();
 
             if (mode === 'delivery') {
-                // 宅配：禁用日期選擇
+                // 宅配：禁用
                 dateInput.disabled = true;
-                dateInput.value = ''; // 清空
+                dateInput.value = '';
                 hint.innerText = "提醒：宅配默認不指定日期出貨，若需指定日期請先與店家詢問。";
                 addressRow.style.display = 'block';
             } else {
-                // 自取：啟用日期選擇 + 邏輯判斷
+                // 自取：啟用 + 邏輯
                 dateInput.disabled = false;
                 addressRow.style.display = 'none';
 
                 let daysToAdd = 0;
                 if (currentHour < 12) {
-                    daysToAdd = 2; // 後天 (D+2)
-                    hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取 (週日、週一公休)如遇滿單會另行通知約期";
+                    daysToAdd = 2; 
+                    hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取 (週日、週一公休)";
                 } else {
-                    daysToAdd = 3; // 大後天 (D+3)
-                    hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取 (週日、週一公休)如遇滿單會另行通知約期";
+                    daysToAdd = 3; 
+                    hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取 (週日、週一公休)";
                 }
 
                 let targetDate = new Date(now);
                 targetDate.setDate(targetDate.getDate() + daysToAdd);
 
-                // 自動避開週日(0)與週一(1)
+                // 自取避開週日(0)與週一(1)
                 while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
                     targetDate.setDate(targetDate.getDate() + 1);
                 }
@@ -364,18 +377,23 @@
             }
         }
 
-        // ★★★ 驗證日期 (手動選時) ★★★
         function validateDate() {
+            const mode = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const dateInput = document.getElementById('pickup-date');
+            
             if (dateInput.disabled || !dateInput.value) return;
 
             const selectedDate = new Date(dateInput.value);
             const day = selectedDate.getDay();
             
-            // 自取：週日(0)或週一(1)不可選
-            if (day === 0 || day === 1) {
-                alert("抱歉，週日與週一為公休日，請選擇其他日期。");
-                updateDateSettings('pickup'); // 重置回最小有效日期
+            if (mode === '宅配') {
+               // 宅配模式下，日期應該是被禁用的，這裡只是雙重保險
+            } else {
+                // 自取：檢查週日(0)或週一(1)
+                if (day === 0 || day === 1) {
+                    alert("抱歉，週日與週一為公休日，請選擇其他日期。");
+                    updateDateSettings('pickup');
+                }
             }
         }
 
@@ -399,7 +417,7 @@
                 rawTotal += item.price * item.quantity;
                 const div = document.createElement('div');
                 div.className = 'cart-item';
-                div.style.borderLeftColor = item.color; 
+                div.style.borderLeftColor = '#ddd'; // 統一邊框顏色
                 div.innerHTML = `
                     <div class="cart-info">
                         <div class="cart-title">${item.name}鮮奶酪</div>
@@ -414,7 +432,6 @@
                 cartContainer.appendChild(div);
             });
             
-            // ★★★ 折扣顯示邏輯 ★★★
             if (rawTotal >= 5000) {
                 let discountedPrice = Math.floor(rawTotal * 0.9);
                 totalEl.innerText = discountedPrice.toLocaleString();
@@ -451,7 +468,6 @@
             const city = document.getElementById('cust-city').value;
             const detailAddr = document.getElementById('cust-addr-detail').value.trim();
 
-            // 驗證邏輯
             if(!name || !phone) { alert("請填寫姓名與電話"); return; }
             if(delivery === '自取' && !dateValue) { alert("請選擇自取日期"); return; }
             
@@ -463,7 +479,6 @@
                 fullAddress = city + detailAddr;
             }
 
-            // 處理日期文字 (宅配顯示特定文字)
             let finalDateStr = dateValue;
             if (delivery === '宅配') {
                 finalDateStr = "宅配不指定日期 (需指定請洽客服)";
@@ -480,7 +495,6 @@
                 msgDetails += `- ${p.name} x ${p.quantity} = $${p.price*p.quantity}\n`;
             });
             
-            // ★★★ 結帳折扣計算 ★★★
             let productFinalPrice = rawTotal;
             let discountText = "";
             if (rawTotal >= 5000) {
@@ -516,7 +530,7 @@
             confirmMsg += `===============\n`;
             confirmMsg += `取貨：${delivery}\n`;
             if(delivery === '自取') confirmMsg += `日期：${finalDateStr}\n`;
-            else confirmMsg += `日期：${finalDateStr}\n`; // 宅配顯示提示字
+            else confirmMsg += `日期：${finalDateStr}\n`; 
             
             confirmMsg += `姓名：${name}\n`;
             confirmMsg += `電話：${phone}\n`;
@@ -619,5 +633,3 @@
     </script>
 </body>
 </html>
-
-
