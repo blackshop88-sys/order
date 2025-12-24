@@ -148,10 +148,39 @@
                     <label class="form-label">手機</label>
                     <input type="tel" id="cust-phone" class="form-input" placeholder="09xx-xxx-xxx" maxlength="10">
                 </div>
+                
                 <div class="form-group" id="address-row">
                     <label class="form-label">宅配地址</label>
-                    <input type="text" id="cust-address" class="form-input" placeholder="縣市/區/街道...">
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <select id="cust-city" class="form-input">
+                            <option value="" disabled selected>請選擇縣市</option>
+                            <option value="基隆市">基隆市</option>
+                            <option value="台北市">台北市</option>
+                            <option value="新北市">新北市</option>
+                            <option value="桃園市">桃園市</option>
+                            <option value="新竹市">新竹市</option>
+                            <option value="新竹縣">新竹縣</option>
+                            <option value="苗栗縣">苗栗縣</option>
+                            <option value="台中市">台中市</option>
+                            <option value="彰化縣">彰化縣</option>
+                            <option value="南投縣">南投縣</option>
+                            <option value="雲林縣">雲林縣</option>
+                            <option value="嘉義市">嘉義市</option>
+                            <option value="嘉義縣">嘉義縣</option>
+                            <option value="台南市">台南市</option>
+                            <option value="高雄市">高雄市</option>
+                            <option value="屏東縣">屏東縣</option>
+                            <option value="宜蘭縣">宜蘭縣</option>
+                            <option value="花蓮縣">花蓮縣</option>
+                            <option value="台東縣">台東縣</option>
+                            <option value="澎湖縣">澎湖縣</option>
+                            <option value="金門縣">金門縣</option>
+                            <option value="連江縣">連江縣</option>
+                        </select>
+                        <input type="text" id="cust-addr-detail" class="form-input" placeholder="鄉鎮市區 / 街道 / 門號">
+                    </div>
                 </div>
+
             </div>
         </div>
 
@@ -214,17 +243,17 @@
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSenpCJdVZWJ4seiaz4GimXwasppPbnX3o1pLGyrnIMWaJ_sqw/formResponse";
         
         const FORM_FIELDS = {
-            orderContent: "entry.1214769536", // A
-            name:         "entry.537178649",  // B
-            phone:        "entry.1240845794", // C
-            payment:      "entry.36879241",   // D
-            delivery:     "entry.2126181854", // E
-            address:      "entry.1346414492", // F
-            date:         "entry.1111858266", // G
-            cups:         "entry.1482122773", // H
-            subtotal:     "entry.1558685102", // I
-            shipping:     "entry.1750953999", // J
-            totalPrice:   "entry.816848611"   // K
+            orderContent: "entry.1214769536", 
+            name:         "entry.537178649",  
+            phone:        "entry.1240845794", 
+            payment:      "entry.36879241",   
+            delivery:     "entry.2126181854", 
+            address:      "entry.1346414492", 
+            date:         "entry.1111858266", 
+            cups:         "entry.1482122773", 
+            subtotal:     "entry.1558685102", 
+            shipping:     "entry.1750953999", 
+            totalPrice:   "entry.816848611"   
         };
 
         const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/uemRyQGLoTi6F3OUSEUgEtlr9QjZ1vTlUUVy930W3RPAgapaVWJM%252BrFuHzZRvpGA";
@@ -269,36 +298,34 @@
             renderCart();
         }
 
-        // ★★★ 更新日期設定邏輯 (12點前後判斷) ★★★
         function updateDateSettings(mode) {
             const now = new Date();
+            const currentHour = now.getHours();
             const hint = document.getElementById('date-hint');
             const addressRow = document.getElementById('address-row');
             
             let daysToAdd = 0;
 
             if (mode === 'delivery') {
-                // 宅配：固定 +3 天
-                daysToAdd = 3;
-                hint.innerText = "提醒：宅配需預留物流時間，請選擇欲收貨時間";
+                if (currentHour < 12) {
+                    daysToAdd = 3; 
+                    hint.innerText = "提醒：中午 12:00 前下單，宅配最快 3 天後到貨";
+                } else {
+                    daysToAdd = 4; 
+                    hint.innerText = "提醒：已過中午 12:00 截單，宅配最快 4 天後到貨";
+                }
                 addressRow.style.display = 'block';
             } else {
-                // 自取：判斷時間
-                const currentHour = now.getHours();
-                
                 if (currentHour < 12) {
-                    // 12點前 -> 明天 (D+1)
-                    daysToAdd = 1;
+                    daysToAdd = 1; 
                     hint.innerText = "提醒：中午 12:00 前下單，最快可選明天自取";
                 } else {
-                    // 12點後 -> 大後天 (D+3)
-                    daysToAdd = 3;
+                    daysToAdd = 3; 
                     hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取";
                 }
                 addressRow.style.display = 'none';
             }
 
-            // 設定日期物件到正確的天數
             now.setDate(now.getDate() + daysToAdd);
 
             const yyyy = now.getFullYear();
@@ -368,10 +395,22 @@
             const date = document.getElementById('pickup-date').value;
             const delivery = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const payment = document.querySelector('input[name="paymentMethod"]:checked').value;
-            const address = document.getElementById('cust-address').value.trim();
+            
+            // ★★★ 地址驗證與組合 ★★★
+            let fullAddress = "";
+            const city = document.getElementById('cust-city').value;
+            const detailAddr = document.getElementById('cust-addr-detail').value.trim();
 
             if(!name || !phone || !date) { alert("請填寫完整資料"); return; }
-            if(delivery === '宅配' && !address) { alert("宅配請填寫地址"); return; }
+            
+            // 如果選宅配，必須檢查縣市與詳細地址
+            if(delivery === '宅配') {
+                if(!city || !detailAddr) {
+                    alert("宅配請務必選擇縣市並填寫詳細地址");
+                    return;
+                }
+                fullAddress = city + detailAddr; // 組合地址
+            }
 
             let rawTotal = 0;
             let totalCups = 0;
@@ -417,7 +456,7 @@
             confirmMsg += `日期：${date}\n`;
             confirmMsg += `姓名：${name}\n`;
             confirmMsg += `電話：${phone}\n`;
-            if(delivery === '宅配') confirmMsg += `地址：${address}\n`;
+            if(delivery === '宅配') confirmMsg += `地址：${fullAddress}\n`;
             confirmMsg += `付款：${payment === 'linepay' ? 'LINE Pay' : '銀行匯款'}\n`;
             confirmMsg += `\n請確認資料無誤，點擊「確定」送出訂單。`;
 
@@ -434,7 +473,7 @@
             formData.append(FORM_FIELDS.phone, phone);               // C
             formData.append(FORM_FIELDS.payment, payment);           // D
             formData.append(FORM_FIELDS.delivery, delivery);         // E
-            formData.append(FORM_FIELDS.address, address);           // F
+            formData.append(FORM_FIELDS.address, fullAddress);       // F (傳送完整地址)
             formData.append(FORM_FIELDS.date, date);                 // G
             formData.append(FORM_FIELDS.cups, totalCups);            // H
             formData.append(FORM_FIELDS.subtotal, productFinalPrice); // I
@@ -446,7 +485,7 @@
                 body: formData,
                 mode: "no-cors"
             }).then(() => {
-                showReceipt(name, phone, date, delivery, payment, address, finalAllPrice, totalCups, shippingFee);
+                showReceipt(name, phone, date, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee);
                 loadingOverlay.style.display = 'none';
             }).catch(err => {
                 alert("訂單傳送失敗，請檢查網路或稍後再試。\n" + err);
@@ -455,7 +494,7 @@
             });
         }
 
-        function showReceipt(name, phone, date, delivery, payment, address, finalAllPrice, totalCups, shippingFee) {
+        function showReceipt(name, phone, date, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee) {
             const now = new Date();
             document.getElementById('receipt-time').innerText = "訂單時間：" + now.toLocaleString('zh-TW', {hour12: false});
             
@@ -477,7 +516,7 @@
             
             if(delivery === '宅配') {
                 document.getElementById('receipt-address-row').style.display = 'flex';
-                document.getElementById('receipt-address').innerText = address;
+                document.getElementById('receipt-address').innerText = fullAddress;
             } else {
                 document.getElementById('receipt-address-row').style.display = 'none';
             }
@@ -504,4 +543,3 @@
     </script>
 </body>
 </html>
-
