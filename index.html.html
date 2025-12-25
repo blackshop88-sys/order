@@ -24,20 +24,23 @@
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
         
         /* 菜單 */
-        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .menu-item { background: #fff; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; text-align: center; }
-        .menu-img-placeholder { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: bold; }
+        
         .menu-img { 
             width: 100%; 
             aspect-ratio: 1 / 1; 
             object-fit: cover;   
             border-radius: 8px; 
-            margin-bottom: 10px; 
+            margin-bottom: 8px; 
             background-color: #eee; 
         }
-        .menu-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 5px; }
-        .menu-price { color: #d63031; font-weight: bold; font-size: 0.95rem; margin-bottom: 8px; }
-        .add-btn { background: #fff; border: 1px solid #00c300; color: #00c300; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+        .menu-name { font-size: 1rem; font-weight: 600; margin-bottom: 3px; line-height: 1.2;}
+        /* ★★★ 新增：口味描述樣式 ★★★ */
+        .menu-desc { font-size: 0.8rem; color: #888; margin-bottom: 8px; line-height: 1.3; min-height: 2.6em; }
+        
+        .menu-price { color: #d63031; font-weight: bold; font-size: 1rem; margin-bottom: 8px; }
+        .add-btn { background: #fff; border: 1px solid #00c300; color: #00c300; padding: 5px 20px; border-radius: 20px; font-size: 0.9rem; cursor: pointer; transition: 0.2s; font-weight: bold; }
         .add-btn:active { background: #00c300; color: #fff; }
 
         /* 購物車 */
@@ -205,7 +208,8 @@
         <div class="bottom-bar">
             <div class="price-area">
                 <div style="font-size:0.8rem; color:#666;">
-                    訂單金額 <span id="discount-badge" class="discount-tag">95折</span>
+                    訂單金額 (共 <span id="total-cups-badge" style="font-weight:bold; color:#333;">0</span> 杯)
+                    <span id="discount-badge" class="discount-tag">95折</span>
                 </div>
                 <div class="total-price">NT$ <span id="final-total">0</span></div>
                 <div class="promo-hint">
@@ -284,17 +288,18 @@
 
         const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/uemRyQGLoTi6F3OUSEUgEtlr9QjZ1vTlUUVy930W3RPAgapaVWJM%252BrFuHzZRvpGA";
         
+        // ★★★ 已加入口味描述 ★★★
         const menuData = [
-            { id: 1, name: "經典原味", price: 45, image: "230242.jpg" },
-            { id: 2, name: "巧克力", price: 50, image: "230240_0.jpg" },
-            { id: 3, name: "抹茶", price: 50, image: "230234_0.jpg" },
-            { id: 4, name: "芝麻", price: 50, image: "230239_0.jpg" },
-            { id: 5, name: "泰奶", price: 50, image: "230235_0.jpg" }, 
-            { id: 6, name: "伯爵紅茶", price: 50, image: "230241_0.jpg" },
-            { id: 7, name: "芋香紫薯", price: 50, image: "230237_0.jpg" },
-            { id: 8, name: "微醺", price: 50, image: "230233_0.jpg" },
-            { id: 9, name: "咖啡", price: 50, image: "230236_0.jpg" },
-            { id: 10, name: "十薰茉莉綠", price: 50, image: "230243.jpg" }
+            { id: 1, name: "經典原味", price: 45, image: "230242.jpg", desc: "濃郁奶香，口感滑順綿密" },
+            { id: 2, name: "巧克力", price: 50, image: "230240_0.jpg", desc: "苦甜交織，濃郁可可風味" },
+            { id: 3, name: "抹茶", price: 50, image: "230234_0.jpg", desc: "日式韻味，茶香回甘不膩" },
+            { id: 4, name: "芝麻", price: 50, image: "230239_0.jpg", desc: "養生黑金，濃烈芝麻香氣" },
+            { id: 5, name: "泰奶", price: 50, image: "230235_0.jpg", desc: "異國風情，獨特煉乳茶香" },
+            { id: 6, name: "伯爵紅茶", price: 50, image: "230241_0.jpg", desc: "英式優雅，佛手柑清香" },
+            { id: 7, name: "芋香紫薯", price: 50, image: "230237_0.jpg", desc: "綿密口感，天然雙薯香甜" },
+            { id: 8, name: "微醺", price: 50, image: "230233_0.jpg", desc: "微醺滋味，大人系甜點" },
+            { id: 9, name: "咖啡", price: 50, image: "230236_0.jpg", desc: "醇厚烘焙，喚醒味蕾" },
+            { id: 10, name: "十薰茉莉綠", price: 50, image: "230243.jpg", desc: "花香撲鼻，清爽回甘" }
         ];
 
         let cart = []; 
@@ -313,6 +318,7 @@
                 div.innerHTML = `
                     <img src="${item.image}" alt="${item.name}" class="menu-img">
                     <div class="menu-name">${item.name}</div>
+                    <div class="menu-desc">${item.desc}</div>
                     <div class="menu-price">$${item.price}</div>
                     <button class="add-btn" onclick="addToCart(${item.id})">加入</button>
                 `;
@@ -322,7 +328,6 @@
             renderCart();
         }
 
-        // ★★★ 日期邏輯更新 (自取避開週日週一) ★★★
         function updateDateSettings(mode) {
             const dateInput = document.getElementById('pickup-date');
             const hint = document.getElementById('date-hint');
@@ -341,17 +346,16 @@
 
                 let daysToAdd = 0;
                 if (currentHour < 12) {
-                    daysToAdd = 2; // 後天
+                    daysToAdd = 2; 
                     hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取 (週日、週一公休)";
                 } else {
-                    daysToAdd = 3; // 大後天
+                    daysToAdd = 3; 
                     hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取 (週日、週一公休)";
                 }
 
                 let targetDate = new Date(now);
                 targetDate.setDate(targetDate.getDate() + daysToAdd);
 
-                // 自動避開週日(0)與週一(1)
                 while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
                     targetDate.setDate(targetDate.getDate() + 1);
                 }
@@ -366,7 +370,6 @@
             }
         }
 
-        // ★★★ 日期驗證 (防止手動選擇週一) ★★★
         function validateDate() {
             const mode = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const dateInput = document.getElementById('pickup-date');
@@ -377,9 +380,8 @@
             const day = selectedDate.getDay();
             
             if (mode === '宅配') {
-               // 宅配禁用，不需驗證
+               
             } else {
-                // 自取：檢查週日(0)或週一(1)
                 if (day === 0 || day === 1) {
                     alert("抱歉，週日與週一為公休日，請選擇其他日期。");
                     updateDateSettings('pickup');
@@ -397,14 +399,19 @@
         function renderCart() {
             cartContainer.innerHTML = '';
             let rawTotal = 0; 
+            let totalCups = 0; 
+
             if (cart.length === 0) {
                 cartContainer.innerHTML = '<div class="empty-cart-msg">購物車目前是空的</div>';
                 totalEl.innerText = '0';
                 discountBadge.style.display = 'none'; 
+                document.getElementById('total-cups-badge').innerText = '0'; 
                 return;
             }
             cart.forEach((item, index) => {
                 rawTotal += item.price * item.quantity;
+                totalCups += item.quantity; 
+                
                 const div = document.createElement('div');
                 div.className = 'cart-item';
                 div.style.borderLeftColor = '#ddd'; 
@@ -422,7 +429,8 @@
                 cartContainer.appendChild(div);
             });
             
-            // ★★★ 折扣邏輯更新 ★★★
+            document.getElementById('total-cups-badge').innerText = totalCups;
+
             if (rawTotal >= 5000) {
                 let discountedPrice = Math.floor(rawTotal * 0.9);
                 totalEl.innerText = discountedPrice.toLocaleString();
@@ -486,13 +494,11 @@
                 msgDetails += `- ${p.name} x ${p.quantity} = $${p.price*p.quantity}\n`;
             });
             
-            // ★★★ 宅配杯數檢查 ★★★
             if (delivery === '宅配' && totalCups % 6 !== 0) {
                 alert(`宅配訂單為了防止運送碰撞，杯數必須是 6 的倍數。\n目前杯數：${totalCups} 杯\n建議調整為 ${Math.ceil(totalCups/6)*6} 杯或 ${Math.floor(totalCups/6)*6} 杯`);
                 return; 
             }
 
-            // ★★★ 結帳折扣計算 ★★★
             let productFinalPrice = rawTotal;
             let discountText = "";
             if (rawTotal >= 5000) {
