@@ -36,9 +36,7 @@
             background-color: #eee; 
         }
         .menu-name { font-size: 1rem; font-weight: 600; margin-bottom: 3px; line-height: 1.2; }
-        /* 描述文字樣式 */
         .menu-desc { font-size: 0.8rem; color: #666; margin-bottom: 8px; line-height: 1.4; min-height: 3.5em; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        
         .menu-price { color: #d63031; font-weight: bold; font-size: 1rem; margin-bottom: 8px; }
         .add-btn { background: #fff; border: 1px solid #00c300; color: #00c300; padding: 5px 20px; border-radius: 20px; font-size: 0.9rem; cursor: pointer; transition: 0.2s; font-weight: bold; }
         .add-btn:active { background: #00c300; color: #fff; }
@@ -48,8 +46,11 @@
         .cart-info { flex: 1; margin-left: 10px; }
         .cart-title { font-weight: bold; font-size: 1rem; }
         .cart-subtotal { color: #888; font-size: 0.85rem; margin-top: 3px; }
+        
+        .cart-right-col { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
         .qty-control { display: flex; align-items: center; gap: 8px; }
         .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ddd; background: #fff; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+        .adult-warn { font-size: 0.7rem; color: #e63946; font-weight: bold; letter-spacing: 0.5px; }
 
         /* 表單 */
         .options-section { background: #fff; border-radius: 10px; padding: 20px; margin-top: 20px; }
@@ -64,6 +65,19 @@
         .radio-label { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
         .radio-input:checked + span { color: #00c300; font-weight: bold; }
         #address-row { display: none; }
+
+        /* 自取資訊區塊 */
+        #pickup-info-box {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            border: 1px solid #bbdefb;
+            text-align: center;
+        }
 
         /* 底部 */
         .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; padding: 12px 20px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; z-index: 999; }
@@ -139,6 +153,26 @@
                     </label>
                 </div>
 
+                <div id="pickup-info-box">
+                    <div style="font-weight:bold; margin-bottom:5px;">📍 自取地點</div>
+                    <div>彰化市三民路430號 (全聯門口)</div>
+                    <div style="font-weight:bold; margin-top:10px; margin-bottom:5px;">⏰ 自取時段</div>
+                    <div>週二至週五：12:00~13:00 / 17:00~18:00</div>
+                    <div>週六：10:00~12:00</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" id="date-label">取貨/到貨日期</label>
+                    
+                    <select id="pickup-slot-select" class="form-input" style="display:none;">
+                        <option value="" disabled selected>請選擇自取時段...</option>
+                    </select>
+                    
+                    <input type="text" id="delivery-date-text" class="form-input" value="宅配不指定日期 (需指定請洽客服)" disabled style="display:none;">
+                    
+                    <div style="font-size:0.85rem; color:#d63031; margin-top:5px; font-weight:bold;" id="date-hint"></div>
+                </div>
+
                 <div class="form-label" style="margin-bottom:8px;">付款方式</div>
                 <div class="radio-group">
                     <label class="radio-label">
@@ -151,11 +185,6 @@
                     </label>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" id="date-label">取貨/到貨日期</label>
-                    <input type="date" id="pickup-date" class="form-input" onchange="validateDate()">
-                    <div style="font-size:0.85rem; color:#d63031; margin-top:5px; font-weight:bold;" id="date-hint"></div>
-                </div>
                 <div class="form-group">
                     <label class="form-label">姓名</label>
                     <input type="text" id="cust-name" class="form-input" placeholder="您的稱呼">
@@ -294,7 +323,7 @@
         // LINE Pay 連結
         const LINE_PAY_LINK = "https://qrcodepay.line.me/qr/payment/uemRyQGLoTi6F3OUSEUgEtlr9QjZ1vTlUUVy930W3RPAgapaVWJM%252BrFuHzZRvpGA";
         
-        // ★★★ 商品資料更新 (價格已調整為 45/50) ★★★
+        // 商品資料
         const menuData = [
             { id: 1, name: "經典原味", price: 45, image: "230242.jpg", desc: "濃郁奶香、綿密滑順，熱賣必買的人氣口味。" },
             { id: 2, name: "巧克力", price: 50, image: "230240_0.jpg", desc: "選用法芙娜可可，可可香濃郁，大人小孩都愛。" },
@@ -313,7 +342,6 @@
         const cartContainer = document.getElementById('cart-list');
         const totalEl = document.getElementById('final-total');
         const discountBadge = document.getElementById('discount-badge');
-        const dateInput = document.getElementById('pickup-date');
         const loadingOverlay = document.getElementById('loading-overlay');
 
         function init() {
@@ -335,63 +363,76 @@
         }
 
         function updateDateSettings(mode) {
-            const dateInput = document.getElementById('pickup-date');
+            const selectEl = document.getElementById('pickup-slot-select');
+            const deliveryText = document.getElementById('delivery-date-text');
             const hint = document.getElementById('date-hint');
             const addressRow = document.getElementById('address-row');
+            const pickupInfoBox = document.getElementById('pickup-info-box');
+            
             const now = new Date();
             const currentHour = now.getHours();
 
             if (mode === 'delivery') {
-                dateInput.disabled = true;
-                dateInput.value = '';
+                selectEl.style.display = 'none';
+                deliveryText.style.display = 'block';
                 hint.innerText = "提醒：宅配默認不指定日期出貨，若需指定日期請先與店家詢問。";
                 addressRow.style.display = 'block';
+                pickupInfoBox.style.display = 'none'; 
             } else {
-                dateInput.disabled = false;
+                selectEl.style.display = 'block';
+                deliveryText.style.display = 'none';
                 addressRow.style.display = 'none';
+                pickupInfoBox.style.display = 'block'; 
 
-                let daysToAdd = 0;
-                if (currentHour < 12) {
-                    daysToAdd = 2; 
-                    hint.innerText = "提醒：中午 12:00 前下單，最快可選後天自取 (週日、週一公休)";
-                } else {
-                    daysToAdd = 3; 
-                    hint.innerText = "提醒：已過中午 12:00，需預留備料，最快大後天自取 (週日、週一公休)";
-                }
+                let daysToAdd = (currentHour < 12) ? 2 : 3; 
+                hint.innerText = (currentHour < 12) 
+                    ? "提醒：中午 12:00 前下單，最快可選後天自取時段" 
+                    : "提醒：已過中午 12:00，需預留備料，最快大後天自取時段";
 
-                let targetDate = new Date(now);
-                targetDate.setDate(targetDate.getDate() + daysToAdd);
-
-                while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
-                    targetDate.setDate(targetDate.getDate() + 1);
-                }
-
-                const yyyy = targetDate.getFullYear();
-                const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
-                const dd = String(targetDate.getDate()).padStart(2, '0');
-                const minDate = `${yyyy}-${mm}-${dd}`;
-                
-                dateInput.min = minDate;
-                dateInput.value = minDate;
+                generatePickupOptions(daysToAdd);
             }
         }
 
-        function validateDate() {
-            const mode = document.querySelector('input[name="deliveryMethod"]:checked').value;
-            const dateInput = document.getElementById('pickup-date');
+        function generatePickupOptions(startDays) {
+            const select = document.getElementById('pickup-slot-select');
+            select.innerHTML = '<option value="" disabled selected>請選擇自取時段...</option>';
             
-            if (dateInput.disabled || !dateInput.value) return;
+            const now = new Date();
+            let startDate = new Date(now);
+            startDate.setDate(startDate.getDate() + startDays);
+            
+            // 產生 30 天內的有效選項
+            for(let i=0; i<30; i++) {
+                let current = new Date(startDate);
+                current.setDate(startDate.getDate() + i);
+                
+                let day = current.getDay(); // 0=日, 1=一, 2=二, 3=三, 4=四, 5=五, 6=六
+                let month = current.getMonth() + 1;
+                let date = current.getDate();
+                let dayStr = ['日','一','二','三','四','五','六'][day];
+                let dateStr = `${month}/${date} (週${dayStr})`;
+                let fullDateStr = `${current.getFullYear()}/${String(month).padStart(2,'0')}/${String(date).padStart(2,'0')} (${dayStr})`;
 
-            const selectedDate = new Date(dateInput.value);
-            const day = selectedDate.getDay();
-            
-            if (mode === '宅配') {
-                // 宅配邏輯...
-            } else {
-                if (day === 0 || day === 1) {
-                    alert("抱歉，週日與週一為公休日，請選擇其他日期。");
-                    updateDateSettings('pickup');
+                // ★邏輯更新：週二(2) 到 週五(5) -> 兩個時段 (12:00~13:00 / 17:00~18:00)
+                if (day >= 2 && day <= 5) {
+                    let opt1 = document.createElement('option');
+                    opt1.value = `${fullDateStr} 12:00~13:00`;
+                    opt1.innerText = `${dateStr} 12:00~13:00`;
+                    select.appendChild(opt1);
+
+                    let opt2 = document.createElement('option');
+                    opt2.value = `${fullDateStr} 17:00~18:00`;
+                    opt2.innerText = `${dateStr} 17:00~18:00`;
+                    select.appendChild(opt2);
                 }
+                // ★邏輯更新：週六(6) -> 一個時段
+                else if (day === 6) {
+                    let opt3 = document.createElement('option');
+                    opt3.value = `${fullDateStr} 10:00~12:00`;
+                    opt3.innerText = `${dateStr} 10:00~12:00`;
+                    select.appendChild(opt3);
+                }
+                // 週日、週一 (0,1) 不產生
             }
         }
 
@@ -418,6 +459,11 @@
                 rawTotal += item.price * item.quantity;
                 totalCups += item.quantity; 
                 
+                let warningHtml = '';
+                if (item.id === 9) {
+                    warningHtml = '<div class="adult-warn">(未滿18歲請勿購買)</div>';
+                }
+
                 const div = document.createElement('div');
                 div.className = 'cart-item';
                 div.style.borderLeftColor = '#ddd'; 
@@ -426,10 +472,13 @@
                         <div class="cart-title">${item.name}</div>
                         <div class="cart-subtotal">$${item.price} x ${item.quantity} = $${item.price * item.quantity}</div>
                     </div>
-                    <div class="qty-control">
-                        <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
-                        <span>${item.quantity}</span>
-                        <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                    <div class="cart-right-col">
+                        <div class="qty-control">
+                            <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
+                            <span>${item.quantity}</span>
+                            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                        </div>
+                        ${warningHtml}
                     </div>
                 `;
                 cartContainer.appendChild(div);
@@ -464,7 +513,6 @@
 
             const name = document.getElementById('cust-name').value.trim();
             const phone = document.getElementById('cust-phone').value.trim();
-            const dateValue = document.getElementById('pickup-date').value;
             const delivery = document.querySelector('input[name="deliveryMethod"]:checked').value;
             const payment = document.querySelector('input[name="paymentMethod"]:checked').value;
             const remarks = document.getElementById('cust-remarks').value.trim(); 
@@ -474,18 +522,18 @@
             const detailAddr = document.getElementById('cust-addr-detail').value.trim();
 
             if(!name || !phone) { alert("請填寫姓名與電話"); return; }
-            if(delivery === '自取' && !dateValue) { alert("請選擇自取日期"); return; }
             
-            if(delivery === '宅配') {
+            let finalDateStr = "";
+            if(delivery === '自取') {
+                const slot = document.getElementById('pickup-slot-select').value;
+                if(!slot) { alert("請選擇自取時段"); return; }
+                finalDateStr = slot;
+            } else {
                 if(!city || !detailAddr) {
                     alert("宅配請務必選擇縣市並填寫詳細地址");
                     return;
                 }
                 fullAddress = city + detailAddr;
-            }
-
-            let finalDateStr = dateValue;
-            if (delivery === '宅配') {
                 finalDateStr = "宅配不指定日期 (需指定請洽客服)";
             }
 
@@ -539,8 +587,7 @@
             confirmMsg += `合計總金額：$${finalAllPrice}\n`;
             confirmMsg += `===============\n`;
             confirmMsg += `取貨：${delivery}\n`;
-            if(delivery === '自取') confirmMsg += `日期：${finalDateStr}\n`;
-            else confirmMsg += `日期：${finalDateStr}\n`; 
+            confirmMsg += `日期：${finalDateStr}\n`; 
             
             confirmMsg += `姓名：${name}\n`;
             confirmMsg += `電話：${phone}\n`;
