@@ -102,7 +102,21 @@
         
         .receipt-bank-box { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; border: 1px solid #c8e6c9; }
         .bank-title { color: #2e7d32; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
-        .bank-detail { font-size: 1.1rem; font-weight: bold; color: #333; letter-spacing: 1px; }
+        .bank-detail-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .bank-detail { font-size: 1.2rem; font-weight: bold; color: #333; letter-spacing: 1px; }
+        
+        /* 複製按鈕樣式 */
+        .copy-btn {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            border-radius: 5px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .copy-btn:active { transform: scale(0.95); background-color: #555; }
         
         .screenshot-box { background: #fff8e1; border: 2px dashed #ffc107; padding: 15px; margin: 20px 0; border-radius: 10px; color: #ff6f00; display: flex; align-items: center; justify-content: center; gap: 10px; text-align: left; }
         .screenshot-icon { font-size: 1.8rem; }
@@ -283,7 +297,10 @@
         <div id="bank-info-area" class="receipt-bank-box" style="display:none;">
             <div class="bank-title">請匯款至以下帳號：</div>
             <div style="margin-bottom:5px;">玉山銀行 (808)</div>
-            <div class="bank-detail">0336979095995</div>
+            <div class="bank-detail-row">
+                <div class="bank-detail" id="bank-acc-num">0336979095995</div>
+                <button class="copy-btn" onclick="copyBankAccount()">複製帳號</button>
+            </div>
             <div style="font-size:0.9rem; color:#666; margin-top:5px;">戶名：金冠吟</div>
         </div>
 
@@ -413,7 +430,7 @@
                 let dateStr = `${month}/${date} (週${dayStr})`;
                 let fullDateStr = `${current.getFullYear()}/${String(month).padStart(2,'0')}/${String(date).padStart(2,'0')} (${dayStr})`;
 
-                // ★邏輯更新：週二(2) 到 週五(5) -> 兩個時段 (12:00~13:00 / 17:00~18:00)
+                // 週二(2) 到 週五(5) -> 兩個時段 (12:00~13:00 / 17:00~18:00)
                 if (day >= 2 && day <= 5) {
                     let opt1 = document.createElement('option');
                     opt1.value = `${fullDateStr} 12:00~13:00`;
@@ -425,7 +442,7 @@
                     opt2.innerText = `${dateStr} 17:00~18:00`;
                     select.appendChild(opt2);
                 }
-                // ★邏輯更新：週六(6) -> 一個時段
+                // 週六(6) -> 一個時段
                 else if (day === 6) {
                     let opt3 = document.createElement('option');
                     opt3.value = `${fullDateStr} 10:00~12:00`;
@@ -433,6 +450,31 @@
                     select.appendChild(opt3);
                 }
                 // 週日、週一 (0,1) 不產生
+            }
+        }
+
+        // --- 複製帳號功能 ---
+        function copyBankAccount() {
+            const accNum = document.getElementById('bank-acc-num').innerText;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(accNum).then(() => {
+                    alert("帳號已複製！");
+                }).catch(err => {
+                    alert("複製失敗，請手動複製");
+                });
+            } else {
+                // Fallback
+                const textArea = document.createElement("textarea");
+                textArea.value = accNum;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    alert("帳號已複製！");
+                } catch (err) {
+                    alert("複製失敗，請手動複製");
+                }
+                document.body.removeChild(textArea);
             }
         }
 
