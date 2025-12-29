@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>奶酪計算極簡版 v4</title>
+    <style>
+        :root { --primary: #2b6cb0; --bg: #f7fafc; --border: #e2e8f0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); margin: 0; padding: 0; color: #333; padding-bottom: 80px; }
+        
+        /* 頂部標題與總計 */
+        header { background: white; padding: 15px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; text-align: center; color: #2d3748; }
+        
+        /* 表頭欄位說明 */
+        .table-header { display: flex; font-size: 0.75rem; color: #718096; padding: 0 10px 5px 10px; border-bottom: 1px solid #cbd5e0; }
+        .th-name { width: 35%; flex-shrink: 0; } /* 左側固定寬度 */
+        .th-data { flex-grow: 1; display: flex; justify-content: space-between; padding-left: 10px; overflow: hidden; }
+        .th-item { width: 20%; text-align: center; white-space: nowrap; }
+
+        /* 列表樣式 */
+        .list-container { background: white; }
+        .row-item { display: flex; align-items: center; border-bottom: 1px solid var(--border); padding: 8px 10px; height: 50px; }
+        
+        /* 左側控制區 (名稱+輸入) */
+        .col-left { width: 35%; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid #edf2f7; padding-right: 5px; }
+        .flavor-name { font-size: 0.95rem; font-weight: bold; color: var(--primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;}
+        .cup-input { width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #cbd5e0; border-radius: 4px; text-align: center; font-size: 1rem; font-weight: bold; background: #ebf8ff; }
+        
+        /* 右側數據區 (可橫向滑動) */
+        .col-right { flex-grow: 1; display: flex; overflow-x: auto; align-items: center; padding-left: 10px; scrollbar-width: none; /* Firefox hide scrollbar */ }
+        .col-right::-webkit-scrollbar { display: none; /* Chrome hide scrollbar */ }
+        
+        .data-box { min-width: 19%; text-align: center; font-size: 0.9rem; font-weight: 500; color: #4a5568; display: flex; flex-direction: column; justify-content: center; }
+        .data-val { display: block; }
+        .data-unit { font-size: 0.6rem; color: #a0aec0; margin-top: -2px;}
+
+        /* 底部浮動區 */
+        .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #2d3748; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 50; box-shadow: 0 -2px 10px rgba(0,0,0,0.2); }
+        .footer-info { font-size: 0.85rem; }
+        .btn-save { background: #48bb78; color: white; border: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; }
+
+        /* 歷史紀錄區 */
+        #historySection { display: none; background: white; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; overflow-y: auto; }
+        .history-header { padding: 15px; background: #edf2f7; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #cbd5e0; }
+        .date-picker { padding: 8px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 6px; }
+        .history-list { padding: 15px; }
+        .history-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .h-time { font-size: 0.8rem; color: #718096; border-bottom: 1px solid #edf2f7; padding-bottom: 5px; margin-bottom: 5px; display: flex; justify-content: space-between;}
+        .h-content { font-size: 0.9rem; white-space: pre-wrap; line-height: 1.5; color: #2d3748; }
+        .close-history { background: transparent; border: none; font-size: 1.5rem; color: #718096; padding: 0 10px; }
+
+        /* 編輯彈窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 85%; max-width: 350px; padding: 20px; border-radius: 12px; }
+        .form-row { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
+        .form-row label { font-size: 0.9rem; color: #4a5568; }
+        .form-row input { width: 80px; padding: 6px; border: 1px solid #cbd5e0; border-radius: 4px; text-align: right; }
+        .modal-btn-group { margin-top: 20px; display: flex; gap: 10px; }
+        .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>🍮 快速計算 v4</h2>
+        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+             <button onclick="toggleHistory()" style="background:#4299e1; color:white; border:none; border-radius:4px; padding:5px 10px; font-size:0.8rem;">📅 查詢歷史紀錄</button>
+             <span id="headerTotal" style="font-size:0.8rem; font-weight:bold; color:#e53e3e; align-self:center;">總奶量: 0</span>
+        </div>
+        
+        <div class="table-header">
+            <div class="th-name">口味 / 杯數</div>
+            <div class="th-data">
+                <div class="th-item">奶</div>
+                <div class="th-item">鮮油</div>
+                <div class="th-item">糖</div>
+                <div class="th-item">吉</div>
+                <div class="th-item">粉/酒</div>
+            </div>
+        </div>
+    </header>
+
+    <div id="listContainer" class="list-container">
+        </div>
+
+    <div class="footer-bar">
+        <div class="footer-info" id="footerInfo">準備輸入...</div>
+        <button class="btn-save" onclick="saveData()">💾 存檔</button>
+    </div>
+
+    <div id="historySection">
+        <div class="history-header">
+            <strong>📜 歷史查詢</strong>
+            <input type="date" id="historyDateInput" class="date-picker" onchange="loadHistoryByDate()">
+            <button class="close-history" onclick="toggleHistory()">×</button>
+        </div>
+        <div id="historyListDisplay" class="history-list">
+            </div>
+        <div style="text-align:center; padding-bottom:50px;">
+             <button onclick="clearAllHistory()" style="color:#e53e3e; background:none; border:1px solid #e53e3e; padding:5px 10px; border-radius:4px; font-size:0.8rem;">清除所有資料</button>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0; color:#2b6cb0;" id="modalTitle">編輯配方</h3>
+            <p style="font-size:0.8rem; color:#e53e3e;">修改每 1 杯的基礎用量</p>
+            <div class="form-row"><label>鮮奶 (ml)</label><input type="number" id="e-milk" step="0.1"></div>
+            <div class="form-row"><label>鮮奶油 (g)</label><input type="number" id="e-cream" step="0.1"></div>
+            <div class="form-row"><label>糖 (g)</label><input type="number" id="e-sugar" step="0.1"></div>
+            <div class="form-row"><label>吉利丁 (片)</label><input type="number" id="e-gelatin" step="0.1"></div>
+            <div class="form-row"><label id="e-powder-label">粉類 (g)</label><input type="number" id="e-powder" step="0.1"></div>
+            <div class="modal-btn-group">
+                <button class="modal-btn" style="background:#ed8936; color:white;" onclick="saveRecipeEdit()">確認修改</button>
+                <button class="modal-btn" style="background:#edf2f7; color:#333;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultRecipes = {
+            "經典原味": { milk: 66, cream: 46.2, sugar: 6, gelatin: 0.4, powder: 0 },
+            "巧克力": { milk: 77, cream: 38.5, sugar: 11.6, gelatin: 0.6, powder: 2.8 },
+            "芝麻": { milk: 55, cream: 55, sugar: 6.6, gelatin: 0.5, powder: 3.6 },
+            "抹茶": { milk: 66, cream: 46.2, sugar: 6.9, gelatin: 0.4, powder: 1.4 },
+            "咖啡": { milk: 71.5, cream: 38.5, sugar: 8, gelatin: 0.6, powder: 1.4 },
+            "伯爵紅茶": { milk: 82.5, cream: 38.5, sugar: 6.7, gelatin: 0.4, powder: 1.8 },
+            "泰式奶茶": { milk: 88, cream: 44, sugar: 9.1, gelatin: 0.5, powder: 7.7 },
+            "芋香紫薯": { milk: 88, cream: 33, sugar: 8.8, gelatin: 0.5, powder: 4.4 },
+            "十薰茉綠": { milk: 82.5, cream: 38.5, sugar: 6.7, gelatin: 0.4, powder: 1.5 },
+            "微醺蘭姆": { milk: 66, cream: 46.2, sugar: 6, gelatin: 0.4, powder: 6 }
+        };
+
+        let recipes = {};
+        let currentEditFlavor = "";
+
+        function init() {
+            // 讀取配方
+            const saved = localStorage.getItem('pannaRecipes_v4');
+            if(saved) {
+                recipes = JSON.parse(saved);
+                // 補丁：確保新口味存在
+                for(let k in defaultRecipes) if(!recipes[k]) recipes[k] = defaultRecipes[k];
+            } else {
+                recipes = JSON.parse(JSON.stringify(defaultRecipes));
+            }
+            
+            renderList();
+            
+            // 設定歷史紀錄日期預設為今天
+            document.getElementById('historyDateInput').valueAsDate = new Date();
+        }
+
+        function renderList() {
+            const container = document.getElementById('listContainer');
+            container.innerHTML = "";
+            
+            for(let flavor in recipes) {
+                const r = recipes[flavor];
+                const div = document.createElement('div');
+                div.className = "row-item";
+                // 點擊口味名稱可編輯配方
+                div.innerHTML = `
+                    <div class="col-left">
+                        <div class="flavor-name" onclick="openEdit('${flavor}')">${flavor}</div>
+                        <input type="number" class="cup-input" id="in-${flavor}" placeholder="0" oninput="calc()" onclick="this.select()">
+                    </div>
+                    <div class="col-right">
+                        <div class="data-box"><span class="data-val" id="out-m-${flavor}">-</span><span class="data-unit">ml</span></div>
+                        <div class="data-box"><span class="data-val" id="out-c-${flavor}">-</span><span class="data-unit">g</span></div>
+                        <div class="data-box"><span class="data-val" id="out-s-${flavor}">-</span><span class="data-unit">g</span></div>
+                        <div class="data-box"><span class="data-val" id="out-g-${flavor}">-</span><span class="data-unit">片</span></div>
+                        <div class="data-box"><span class="data-val" id="out-p-${flavor}">-</span><span class="data-unit">${flavor==="微醺蘭姆"?"ml":"g"}</span></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        function calc() {
+            let totalMilk = 0, totalCream = 0;
+            
+            for(let flavor in recipes) {
+                const r = recipes[flavor];
+                const input = document.getElementById(`in-${flavor}`);
+                const val = parseFloat(input.value) || 0;
+                
+                // 顯示計算結果
+                document.getElementById(`out-m-${flavor}`).textContent = val > 0 ? (r.milk * val).toFixed(0) : '-';
+                document.getElementById(`out-c-${flavor}`).textContent = val > 0 ? (r.cream * val).toFixed(0) : '-';
+                document.getElementById(`out-s-${flavor}`).textContent = val > 0 ? (r.sugar * val).toFixed(0) : '-';
+                document.getElementById(`out-g-${flavor}`).textContent = val > 0 ? (r.gelatin * val).toFixed(1) : '-';
+                document.getElementById(`out-p-${flavor}`).textContent = val > 0 ? (r.powder * val).toFixed(1) : '-';
+                
+                totalMilk += (r.milk * val);
+                totalCream += (r.cream * val);
+            }
+            
+            // 更新總計
+            document.getElementById('headerTotal').textContent = `鮮奶: ${totalMilk.toFixed(0)} | 鮮油: ${totalCream.toFixed(0)}`;
+            document.getElementById('footerInfo').textContent = `本日總需: 鮮奶 ${totalMilk.toFixed(0)}ml / 鮮奶油 ${totalCream.toFixed(0)}g`;
+        }
+
+        // --- 存檔系統 ---
+        function saveData() {
+            const today = new Date();
+            // 格式化日期 key: YYYY-MM-DD (配合 input date 格式)
+            const dateKey = today.toISOString().split('T')[0];
+            const timeStr = today.getHours() + ":" + (today.getMinutes()<10?'0':'') + today.getMinutes();
+            
+            let details = [];
+            for(let flavor in recipes) {
+                const val = parseFloat(document.getElementById(`in-${flavor}`).value) || 0;
+                if(val > 0) {
+                    const r = recipes[flavor];
+                    details.push(`${flavor} x${val}杯`);
+                }
+            }
+            
+            if(details.length === 0) { alert("請輸入數量"); return; }
+            
+            const record = {
+                id: Date.now(),
+                time: timeStr,
+                dateKey: dateKey, // 用於過濾
+                summary: document.getElementById('footerInfo').textContent,
+                detailText: details.join(", ")
+            };
+            
+            let history = JSON.parse(localStorage.getItem('pannaHistory_v4') || "[]");
+            history.push(record);
+            localStorage.setItem('pannaHistory_v4', JSON.stringify(history));
+            
+            alert("✅ 已存檔");
+            // 存檔後自動打開歷史紀錄確認
+            toggleHistory();
+            loadHistoryByDate();
+        }
+
+        // --- 歷史紀錄系統 ---
+        function toggleHistory() {
+            const section = document.getElementById('historySection');
+            section.style.display = (section.style.display === 'block') ? 'none' : 'block';
+            if(section.style.display === 'block') loadHistoryByDate();
+        }
+
+        function loadHistoryByDate() {
+            const targetDate = document.getElementById('historyDateInput').value; // yyyy-mm-dd
+            const listDiv = document.getElementById('historyListDisplay');
+            const history = JSON.parse(localStorage.getItem('pannaHistory_v4') || "[]");
+            
+            // 過濾日期 (新的一筆在上面，所以 reverse)
+            const filtered = history.filter(h => h.dateKey === targetDate).reverse();
+            
+            listDiv.innerHTML = "";
+            if(filtered.length === 0) {
+                listDiv.innerHTML = `<div style="text-align:center; color:#a0aec0; margin-top:20px;">📅 該日期無資料</div>`;
+                return;
+            }
+            
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "history-card";
+                div.innerHTML = `
+                    <div class="h-time">
+                        <span>⏰ ${item.time}</span>
+                        <span style="color:#2b6cb0" onclick="deleteItem(${item.id})">🗑️</span>
+                    </div>
+                    <div class="h-content">
+                        <strong>${item.summary}</strong><br>
+                        <span style="color:#718096; font-size:0.85rem">${item.detailText}</span>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+        
+        function deleteItem(id) {
+            if(!confirm("刪除此筆紀錄？")) return;
+            let history = JSON.parse(localStorage.getItem('pannaHistory_v4') || "[]");
+            history = history.filter(h => h.id !== id);
+            localStorage.setItem('pannaHistory_v4', JSON.stringify(history));
+            loadHistoryByDate();
+        }
+        
+        function clearAllHistory() {
+            if(confirm("確定清空【所有】歷史資料？")) {
+                localStorage.removeItem('pannaHistory_v4');
+                loadHistoryByDate();
+            }
+        }
+
+        // --- 編輯功能 ---
+        function openEdit(flavor) {
+            currentEditFlavor = flavor;
+            const r = recipes[flavor];
+            document.getElementById('modalTitle').textContent = "設定: " + flavor;
+            document.getElementById('e-milk').value = r.milk;
+            document.getElementById('e-cream').value = r.cream;
+            document.getElementById('e-sugar').value = r.sugar;
+            document.getElementById('e-gelatin').value = r.gelatin;
+            document.getElementById('e-powder').value = r.powder;
+            
+            document.getElementById('e-powder-label').textContent = (flavor==="微醺蘭姆") ? "酒 (ml)" : "粉類 (g)";
+            document.getElementById('editModal').style.display = "flex";
+        }
+        
+        function closeModal() { document.getElementById('editModal').style.display = "none"; }
+        
+        function saveRecipeEdit() {
+            if(!confirm(`確定修改【${currentEditFlavor}】配方？`)) return;
+            
+            recipes[currentEditFlavor] = {
+                milk: parseFloat(document.getElementById('e-milk').value)||0,
+                cream: parseFloat(document.getElementById('e-cream').value)||0,
+                sugar: parseFloat(document.getElementById('e-sugar').value)||0,
+                gelatin: parseFloat(document.getElementById('e-gelatin').value)||0,
+                powder: parseFloat(document.getElementById('e-powder').value)||0,
+            };
+            localStorage.setItem('pannaRecipes_v4', JSON.stringify(recipes));
+            closeModal();
+            calc(); // 重新計算
+            alert("已更新配方");
+        }
+
+        init();
+    </script>
+</body>
+</html>
