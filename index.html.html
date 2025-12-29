@@ -333,7 +333,8 @@
             cups:         "entry.1482122773", 
             subtotal:     "entry.1558685102", 
             shipping:     "entry.1750953999", 
-            totalPrice:   "entry.816848611"   
+            totalPrice:   "entry.816848611",
+            remarks:      "entry.370850133"  // ★★★ 請注意：這裡務必填入您Google表單「備註」欄位的ID ★★★
         };
 
         // LINE Pay 連結
@@ -644,7 +645,7 @@
 
             let fullOrderInfo = orderDetails + ` [共${totalCups}個]`;
             if(shippingFee > 0) fullOrderInfo += ` [運費$${shippingFee}]`;
-            if(remarks) fullOrderInfo += ` [備註: ${remarks}]`;
+            // ★ 備註不再併入訂單明細，而是透過獨立欄位送出
 
             let formData = new FormData();
             formData.append(FORM_FIELDS.orderContent, fullOrderInfo); 
@@ -657,7 +658,8 @@
             formData.append(FORM_FIELDS.cups, totalCups);             
             formData.append(FORM_FIELDS.subtotal, productFinalPrice); 
             formData.append(FORM_FIELDS.shipping, shippingFee);        
-            formData.append(FORM_FIELDS.totalPrice, finalAllPrice);   
+            formData.append(FORM_FIELDS.totalPrice, finalAllPrice);
+            formData.append(FORM_FIELDS.remarks, remarks); // ★ 新增傳送備註
 
             fetch(GOOGLE_FORM_URL, {
                 method: "POST",
