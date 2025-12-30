@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>興居室內裝修 - 工程估價系統</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            --bg-color: #f4f7f6;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: #333;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        /* --- 標題區域 --- */
+        input.main-title-input {
+            width: 100%;
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-align: center;
+            border: none;
+            border-bottom: 2px solid transparent;
+            background: transparent;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            outline: none;
+            padding: 5px;
+            font-family: inherit;
+        }
+        input.main-title-input:focus {
+            border-bottom: 2px solid var(--accent-color);
+            background-color: #fffef0;
+        }
+
+        /* --- 左右分欄佈局 (Header Info) --- */
+        .info-split-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 15px;
+        }
+
+        .info-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .info-row label {
+            font-weight: bold;
+            min-width: 70px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        input.text-input {
+            border: none;
+            border-bottom: 1px solid #999;
+            background: transparent;
+            padding: 2px;
+            font-size: 15px;
+            font-family: inherit;
+            flex-grow: 1;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input.text-input:focus {
+            border-bottom-color: var(--accent-color);
+            background-color: #fffef0;
+        }
+
+        .right-align-input input.text-input {
+            text-align: right;
+        }
+        
+        .date-display {
+            text-align: right;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* --- 表格樣式 --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        th, td {
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 15px;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: normal;
+        }
+
+        .center-text { text-align: center; }
+        .right-text { text-align: right; }
+
+        tr:hover { background-color: #f9f9f9; }
+
+        input.qty-input {
+            width: 80px;
+            padding: 2px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .price-col, .subtotal-col {
+            font-family: monospace;
+            font-size: 15px;
+        }
+
+        .min-rule {
+            font-size: 11px;
+            color: #7f8c8d;
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* --- 底部佈局容器 --- */
+        .bottom-layout {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 10px;
+        }
+
+        .terms-section {
+            width: 55%;
+            border: 1px solid #000;
+            padding: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        .right-summary-section {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .terms-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 8px;
+            display: inline-block;
+            background: #eee;
+            padding: 3px 8px;
+        }
+
+        .term-item { display: flex; margin-bottom: 5px; }
+        .term-num { min-width: 20px; }
+        .term-content { flex-grow: 1; }
+
+        .total-section {
+            text-align: right;
+            padding-top: 10px;
+            margin-bottom: 30px;
+            border-top: 3px double var(--border-color);
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--primary-color);
+            width: 100%;
+        }
+
+        .owner-sign-box {
+            text-align: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .owner-sign-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .owner-sign-line {
+            border-bottom: 1px solid #000;
+            height: 1px;
+            width: 100%;
+        }
+
+        .actions {
+            margin-top: 40px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 0 10px;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #34495e; }
+        button.btn-print { background-color: var(--accent-color); }
+        button.btn-print:hover { background-color: #d35400; }
+        
+        button.btn-add { background-color: #27ae60; }
+        button.btn-add:hover { background-color: #219150; }
+        
+        .delete-btn {
+            color: red;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 5px;
+            border: 1px solid red;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+        }
+        .delete-btn:hover { background-color: red; color: white; }
+
+        .print-only { display: none; }
+
+        /* --- 自動排序與列印邏輯 --- */
+        tbody {
+            counter-reset: row-num;
+        }
+        tbody tr:not(.print-hidden) {
+            counter-increment: row-num;
+        }
+        .index-cell::before {
+            content: counter(row-num);
+        }
+
+        /* 列印專用樣式 */
+        @media print {
+            @page { margin: 1cm; }
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; max-width: 100%; padding: 0; }
+            
+            .actions, .delete-btn { display: none !important; }
+
+            input.text-input { border-bottom: 1px solid #000; padding: 0 2px; }
+            input.main-title-input { border: none; color: #000; text-align: center; }
+            input.qty-input { display: none; }
+            .print-only { display: inline; }
+            
+            tr.empty-row { display: none; }
+
+            th {
+                background-color: #eee !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                padding: 4px 8px;
+            }
+            td {
+                padding: 4px 8px;
+            }
+            
+            .bottom-layout {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                page-break-inside: avoid;
+            }
+            
+            .custom-row input {
+                border: none;
+                border-bottom: 1px solid transparent;
+                text-align: center;
+                width: 100%;
+                padding: 0;
+            }
+            .custom-row input.text-input-left { text-align: left; }
+            .custom-row input.text-input-right { text-align: right; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <input type="text" class="main-title-input" value="興居室內裝修設計工程有限公司" placeholder="請輸入標題">
+
+    <div class="info-split-container">
+        <div class="info-panel">
+            <div class="info-row">
+                <label>客戶名稱:</label>
+                <input type="text" class="text-input" placeholder="請輸入客戶大名">
+            </div>
+            <div class="info-row">
+                <label>聯絡電話:</label>
+                <input type="text" class="text-input" placeholder="請輸入連絡電話">
+            </div>
+            <div class="info-row">
+                <label>施工地址:</label>
+                <input type="text" class="text-input" placeholder="請輸入施工地點">
+            </div>
+            <div class="info-row">
+                <label>預計工期:</label>
+                <input type="text" class="text-input" placeholder="例: 進場後15個工作天">
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-row right-align-input">
+                <label>聯絡人:</label>
+                <input type="text" class="text-input" placeholder="請輸入姓名">
+            </div>
+            <div class="info-row right-align-input">
+                <label>聯絡電話:</label>
+                <input type="text" class="text-input" placeholder="請輸入電話">
+            </div>
+            <div class="info-row right-align-input">
+                <label>公司地址:</label>
+                <input type="text" class="text-input" value="彰化市金馬路 2 段 519 號">
+            </div>
+            <div class="info-row">
+                <label style="width: 100%; text-align: right;">
+                    <span id="date-display" class="date-display"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;" class="center-text">項次</th>
+                <th style="width: 35%;">工程項目</th>
+                <th style="width: 15%;" class="right-text">單價</th>
+                <th style="width: 10%;" class="center-text">單位</th>
+                <th style="width: 15%;" class="center-text">數量</th>
+                <th style="width: 20%;" class="right-text">複價 (NT$)</th>
+            </tr>
+        </thead>
+        <tbody id="quotation-body">
+            </tbody>
+    </table>
+    
+    <div style="text-align: left; margin-bottom: 20px;" class="actions">
+        <button onclick="addCustomRow()" class="btn-add">+ 新增自訂工作項目</button>
+    </div>
+
+    <div class="bottom-layout">
+        
+        <div class="terms-section">
+            <div class="terms-title">備註條款</div>
+            <div class="term-item">
+                <div class="term-num">1.</div>
+                <div class="term-content">
+                    收款進度: <input type="text" class="text-input" style="width: 60%;" placeholder="請輸入收款方式">
+                </div>
+            </div>
+            <div class="term-item">
+                <div class="term-num">2.</div>
+                <div class="term-content">單價皆為現金價不含稅, 營業稅外加</div>
+            </div>
+            <div class="term-item">
+                <div class="term-num">3.</div>
+                <div class="term-content">本報價單簽約前為公司內部機密資料，非經本公司同意禁止轉傳閱</div>
+            </div>
+            <div class="term-item">
+                <div class="term-num">4.</div>
+                <div class="term-content">新設備有非人為損壞 一年期 公司保固</div>
+            </div>
+            <div class="term-item">
+                <div class="term-num">5.</div>
+                <div class="term-content">本報價單業主簽章付訂後則轉為正式合約壹式兩份</div>
+            </div>
+            <div class="term-item">
+                <div class="term-num">6.</div>
+                <div class="term-content">最終價格以現場實際丈量及雙方確認為準</div>
+            </div>
+        </div>
+
+        <div class="right-summary-section">
+            <div class="total-section">
+                總計: NT$ <span id="grand-total">0</span>
+            </div>
+            
+            <div class="owner-sign-box">
+                <div class="owner-sign-title">業主合約確認簽名處</div>
+                <br>
+                <div class="owner-sign-line"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="actions">
+        <button onclick="window.print()" class="btn-print">列印 / 另存PDF</button>
+        <button onclick="resetForm()">清除全部</button>
+    </div>
+</div>
+
+<script>
+    // 項目資料庫
+    const items = [
+        { name: "打石見底含清運", unit: "坪", price: 4000, min: 3 },
+        { name: "打石不見底含清運", unit: "坪", price: 3000, min: 3 },
+        { name: "磚牆打除含清運", unit: "坪", price: 5000, min: 3 },
+        { name: "RC牆打除含清運", unit: "坪", price: 6000, min: 3 },
+        { name: "RC廚具(僅檯櫃) 打除含清運", unit: "米", price: 10000, min: 1 },
+        { name: "拆木作高櫃體含清運", unit: "尺", price: 1500, min: 6 },
+        { name: "拆木作下廚櫃體含清運", unit: "尺", price: 1000, min: 8 },
+        { name: "拆木作,輕鋼架天花板含清運", unit: "坪", price: 800, min: 10 },
+        { name: "砌4吋紅磚隔間牆 (含雙面水泥粉刷)", unit: "坪", price: 13000, min: 1 },
+        { name: "水泥粉刷,粉光", unit: "坪", price: 2500, min: 4 },
+        { name: "壁貼益膠泥 貼磁磚30x60以內", unit: "坪", price: 9000, min: 1 },
+        { name: "地板做軟底 貼磁磚50x50以內 (軟底5公分內)", unit: "坪", price: 9000, min: 1 },
+        { name: "地板水泥砂打底 5公分內", unit: "坪", price: 3000, min: 3 },
+        { name: "地板水泥砂打底 10公分內", unit: "坪", price: 4500, min: 3 },
+        { name: "做防水底漆一次+彈性面漆兩次", unit: "坪", price: 2000, min: 3 },
+        { name: "矽酸鈣板輕鋼架天花板", unit: "坪", price: 2200, min: 3 },
+        { name: "木作矽酸鈣板天花板6mm", unit: "坪", price: 4200, min: 2 },
+        { name: "批AB膠透批白土", unit: "坪", price: 1800, min: 3 },
+        { name: "窗簾盒批AB膠透批白土", unit: "尺", price: 600, min: 8 },
+        { name: "冷氣盒批AB膠透批白土", unit: "個", price: 2300, min: 2 },
+        { name: "壁面水泥漆刷三次 (不包含批孔)", unit: "坪", price: 800, min: 6 },
+        { name: "木作6mm矽酸鈣板單面隔間", unit: "坪", price: 4200, min: 2 },
+        { name: "木作6mm矽酸鈣板雙面隔間", unit: "坪", price: 5300, min: 2 },
+        // 更新後的項目名稱：
+        { name: "無裝潢室內電燈插座抽換線 (包含國際星光面板)", unit: "個", price: 1000, min: 5 },
+        { name: "浴室範圍配給排水管一套 舊改新", unit: "間", price: 25000, min: 1 }, 
+        { name: "浴室衛浴設備安裝", unit: "間", price: 5500, min: 1 },
+        { name: "HCG和成牌基本款衛浴設備(馬桶+臉盆+臉盆龍頭+沐浴龍頭+鏡子)", unit: "套", price: 15000, min: 1 }
+    ];
+
+    const tbody = document.getElementById('quotation-body');
+    const totalSpan = document.getElementById('grand-total');
+    const dateDisplay = document.getElementById('date-display');
+
+    // 設定今日日期
+    const today = new Date();
+    dateDisplay.innerText = `報價日期: ${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+
+    // 初始化表格
+    function initTable() {
+        items.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.className = 'empty-row'; // 預設標記為空行
+            
+            let minRuleText = "";
+            if (item.min > 1) {
+                minRuleText = `<span class="min-rule">(不滿${item.min}${item.unit}以${item.min}${item.unit}計)</span>`;
+            }
+
+            tr.innerHTML = `
+                <td class="center-text"><span class="index-cell"></span></td>
+                <td>
+                    ${item.name}
+                    ${minRuleText}
+                </td>
+                <td class="price-col right-text">${item.price.toLocaleString()}</td>
+                <td class="center-text">${item.unit}</td>
+                <td class="center-text">
+                    <input type="number" class="qty-input" min="0" step="0.1" oninput="calculateRow(${index}, this.value)" placeholder="0">
+                    <span class="print-only" id="print-qty-${index}"></span>
+                </td>
+                <td class="subtotal-col right-text" id="subtotal-${index}">0</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 計算預設項目的邏輯
+    function calculateRow(index, value) {
+        const item = items[index];
+        const qty = parseFloat(value);
+        const subtotalEl = document.getElementById(`subtotal-${index}`);
+        const printQtyEl = document.getElementById(`print-qty-${index}`);
+        const row = subtotalEl.closest('tr');
+
+        if (isNaN(qty) || qty === 0) {
+            subtotalEl.innerText = "0";
+            printQtyEl.innerText = "";
+            row.classList.add('empty-row'); // 列印時隱藏
+            updateTotal();
+            return;
+        }
+
+        row.classList.remove('empty-row'); // 列印時顯示
+
+        // 計算邏輯：有最低低消
+        let billingQty = qty;
+        let isMinCharge = false;
+
+        if (qty < item.min) {
+            billingQty = item.min;
+            isMinCharge = true;
+        }
+
+        const total = billingQty * item.price;
+        subtotalEl.innerText = total.toLocaleString();
+        
+        // 列印顯示文字
+        if (isMinCharge) {
+            printQtyEl.innerText = `${qty} (以${item.min}計)`;
+        } else {
+            printQtyEl.innerText = qty;
+        }
+
+        updateTotal();
+    }
+
+    // 新增自訂項目
+    function addCustomRow() {
+        const tr = document.createElement('tr');
+        tr.className = 'custom-row'; // 標記為自訂行，總是顯示
+        
+        tr.innerHTML = `
+            <td class="center-text"><span class="index-cell"></span></td>
+            <td>
+                <input type="text" class="text-input text-input-left" placeholder="輸入工作項目名稱">
+            </td>
+            <td class="right-text">
+                <input type="number" class="text-input text-input-right price-input" placeholder="單價" oninput="calculateCustomRow(this)">
+            </td>
+            <td class="center-text">
+                <input type="text" class="text-input" style="text-align:center;" placeholder="單位">
+            </td>
+            <td class="center-text">
+                <input type="number" class="qty-input" min="0" step="0.1" oninput="calculateCustomRow(this)" placeholder="0">
+                <span class="print-only custom-qty-print"></span>
+            </td>
+            <td class="subtotal-col right-text">0 <span class="delete-btn" onclick="removeCustomRow(this)" title="刪除此行">✕</span></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    // 計算自訂項目的邏輯
+    function calculateCustomRow(input) {
+        const row = input.closest('tr');
+        const priceInput = row.querySelector('.price-input');
+        const qtyInput = row.querySelector('.qty-input');
+        const subtotalEl = row.querySelector('.subtotal-col');
+        const printQtyEl = row.querySelector('.custom-qty-print');
+        
+        const price = parseFloat(priceInput.value) || 0;
+        const qty = parseFloat(qtyInput.value) || 0;
+        
+        const total = price * qty;
+        
+        // 更新複價顯示 (保留刪除按鈕)
+        subtotalEl.innerHTML = `${total.toLocaleString()} <span class="delete-btn" onclick="removeCustomRow(this)" title="刪除此行">✕</span>`;
+        
+        // 更新列印時的數量文字
+        printQtyEl.innerText = qtyInput.value;
+
+        updateTotal();
+    }
+
+    // 刪除自訂行
+    function removeCustomRow(btn) {
+        if(confirm("確定刪除此項目？")) {
+            const row = btn.closest('tr');
+            row.remove();
+            updateTotal();
+        }
+    }
+
+    // 計算總價
+    function updateTotal() {
+        let grandTotal = 0;
+        const subtotalEls = document.querySelectorAll('.subtotal-col');
+        
+        subtotalEls.forEach(el => {
+            grandTotal += parseInt(el.innerText.replace(/,/g, '').replace('✕', '')) || 0;
+        });
+
+        totalSpan.innerText = grandTotal.toLocaleString();
+    }
+
+    // 重置
+    function resetForm() {
+        if(confirm("確定要清除所有輸入嗎？")) {
+            // 清除預設數值
+            const qtyInputs = document.querySelectorAll('.qty-input');
+            qtyInputs.forEach(input => {
+                input.value = '';
+                input.dispatchEvent(new Event('input'));
+            });
+            // 清除文字輸入 (不含地址)
+            const textInputs = document.querySelectorAll('.text-input');
+            textInputs.forEach(input => {
+                if (input.value !== "彰化市金馬路 2 段 519 號") {
+                    input.value = '';
+                }
+            });
+            // 移除所有自訂行
+            const customRows = document.querySelectorAll('.custom-row');
+            customRows.forEach(row => row.remove());
+            
+            updateTotal();
+        }
+    }
+
+    initTable();
+</script>
+
+</body>
+</html>
