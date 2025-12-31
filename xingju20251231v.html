@@ -133,13 +133,23 @@
 
         tr:hover { background-color: #f9f9f9; }
 
-        input.qty-input {
+        /* 輸入框樣式 */
+        input.qty-input, input.price-edit-input {
             width: 80px;
             padding: 2px;
             border: 1px solid #ccc;
             border-radius: 4px;
             text-align: center;
             font-size: 15px;
+        }
+        
+        /* 預設隱藏價格編輯框 */
+        input.price-edit-input {
+            display: none; 
+            text-align: right;
+            width: 100%;
+            border-color: #2980b9; /* 編輯模式用藍色邊框區別 */
+            background-color: #ebf5fb;
         }
 
         .price-col, .subtotal-col {
@@ -247,6 +257,11 @@
         button.btn-add { background-color: #27ae60; }
         button.btn-add:hover { background-color: #219150; }
         
+        /* 價格修改按鈕 */
+        button.btn-edit-price { background-color: #8e44ad; }
+        button.btn-edit-price:hover { background-color: #732d91; }
+        button.btn-edit-price.active { background-color: #c0392b; } /* 鎖定狀態變紅色 */
+
         .delete-btn {
             color: red;
             cursor: pointer;
@@ -287,6 +302,11 @@
             input.text-input { border-bottom: 1px solid #000; padding: 0 2px; }
             input.main-title-input { border: none; color: #000; text-align: center; }
             input.qty-input { display: none; }
+            
+            /* 列印時強制顯示文字價格，隱藏編輯框 */
+            .price-display { display: inline !important; }
+            .price-edit-input { display: none !important; }
+
             .print-only { display: inline; }
             
             tr.empty-row { display: none; }
@@ -382,7 +402,8 @@
     </table>
     
     <div style="text-align: left; margin-bottom: 20px;" class="actions">
-        <button onclick="addCustomRow()" class="btn-add">+ 新增自訂工作項目</button>
+        <button onclick="addCustomRow()" class="btn-add">+ 新增自訂項目</button>
+        <button onclick="togglePriceEdit()" id="btn-price-toggle" class="btn-edit-price">🔓 修改預設單價</button>
     </div>
 
     <div class="bottom-layout">
@@ -463,7 +484,6 @@
         { name: "壁面水泥漆刷三次 (不包含批孔)", unit: "坪", price: 800, min: 6 },
         { name: "木作6mm矽酸鈣板單面隔間", unit: "坪", price: 4200, min: 2 },
         { name: "木作6mm矽酸鈣板雙面隔間", unit: "坪", price: 5300, min: 2 },
-        // 更新後的項目名稱：
         { name: "無裝潢室內電燈插座抽換線 (包含國際星光面板)", unit: "個", price: 1000, min: 5 },
         { name: "浴室範圍配給排水管一套 舊改新", unit: "間", price: 25000, min: 1 }, 
         { name: "浴室衛浴設備安裝", unit: "間", price: 5500, min: 1 },
@@ -473,6 +493,9 @@
     const tbody = document.getElementById('quotation-body');
     const totalSpan = document.getElementById('grand-total');
     const dateDisplay = document.getElementById('date-display');
+    const priceToggleBtn = document.getElementById('btn-price-toggle');
+    
+    let isPriceEditing = false; // 追蹤價格編輯狀態
 
     // 設定今日日期
     const today = new Date();
@@ -495,7 +518,10 @@
                     ${item.name}
                     ${minRuleText}
                 </td>
-                <td class="price-col right-text">${item.price.toLocaleString()}</td>
+                <td class="price-col right-text">
+                    <span class="price-display" id="price-display-${index}">${item.price.toLocaleString()}</span>
+                    <input type="number" class="price-edit-input" id="price-input-${index}" value="${item.price}" oninput="updateItemPrice(${index}, this.value)">
+                </td>
                 <td class="center-text">${item.unit}</td>
                 <td class="center-text">
                     <input type="number" class="qty-input" min="0" step="0.1" oninput="calculateRow(${index}, this.value)" placeholder="0">
@@ -505,6 +531,39 @@
             `;
             tbody.appendChild(tr);
         });
+    }
+
+    // 切換價格編輯模式
+    function togglePriceEdit() {
+        isPriceEditing = !isPriceEditing;
+        
+        const displays = document.querySelectorAll('.price-display');
+        const inputs = document.querySelectorAll('.price-edit-input');
+        
+        if (isPriceEditing) {
+            priceToggleBtn.innerText = "🔒 鎖定單價 (完成)";
+            priceToggleBtn.classList.add('active');
+            displays.forEach(el => el.style.display = 'none');
+            inputs.forEach(el => el.style.display = 'inline-block');
+        } else {
+            priceToggleBtn.innerText = "🔓 修改預設單價";
+            priceToggleBtn.classList.remove('active');
+            displays.forEach(el => el.style.display = 'inline');
+            inputs.forEach(el => el.style.display = 'none');
+        }
+    }
+
+    // 更新項目單價 (當編輯框輸入時)
+    function updateItemPrice(index, newPrice) {
+        const price = parseFloat(newPrice) || 0;
+        items[index].price = price; // 更新資料庫
+        
+        // 更新顯示文字 (加逗號)
+        document.getElementById(`price-display-${index}`).innerText = price.toLocaleString();
+        
+        // 觸發重新計算 (抓取目前的數量)
+        const qtyInput = document.querySelectorAll('.qty-input')[index];
+        calculateRow(index, qtyInput.value);
     }
 
     // 計算預設項目的邏輯
