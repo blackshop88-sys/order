@@ -66,18 +66,32 @@
         .radio-input:checked + span { color: #00c300; font-weight: bold; }
         #address-row { display: none; }
 
-        /* 自取資訊區塊 */
+        /* 資訊區塊通用樣式 */
+        .info-box {
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        /* 自取資訊區塊 (藍色) */
         #pickup-info-box {
             background-color: #e3f2fd;
             color: #0d47a1;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 1rem;
-            margin-bottom: 15px;
-            line-height: 1.6;
             border: 1px solid #bbdefb;
-            text-align: center;
         }
+
+        /* 宅配資訊區塊 (橘色) */
+        #delivery-info-box {
+            background-color: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffe0b2;
+            display: none; /* 預設隱藏 */
+            text-align: left;
+        }
+        .delivery-title { font-weight: bold; margin-bottom: 5px; font-size: 1rem; }
 
         /* 底部 */
         .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; padding: 12px 20px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; z-index: 999; }
@@ -166,12 +180,20 @@
                     </label>
                 </div>
 
-                <div id="pickup-info-box">
+                <div id="pickup-info-box" class="info-box">
                     <div style="font-weight:bold; margin-bottom:5px;">📍 自取地點</div>
                     <div>彰化市三民路430號 (全聯門口)</div>
                     <div style="font-weight:bold; margin-top:10px; margin-bottom:5px;">⏰ 自取時段</div>
                     <div>週二至週五：12:00~13:00 / 17:00~18:00</div>
                     <div>週六：10:00~12:00</div>
+                </div>
+
+                <div id="delivery-info-box" class="info-box">
+                    <div class="delivery-title">🚚 新竹物流冷藏宅配費用</div>
+                    <div>• 1-2 盒 (6-12入)：<b>$130</b></div>
+                    <div>• 3-8 盒 (18-48入)：<b>$170</b></div>
+                    <div>• 9 盒以上 (54入以上)：<b>$210</b></div>
+                    <div style="font-size:0.85rem; color:#d84315; margin-top:8px;">* 為確保運送安全，宅配訂單請以 6 的倍數下單 (整盒出貨)。</div>
                 </div>
 
                 <div class="form-group">
@@ -334,7 +356,7 @@
             subtotal:     "entry.1558685102", 
             shipping:     "entry.1750953999", 
             totalPrice:   "entry.816848611",
-            remarks:      "entry.370850133"  // ★★★ 請注意：這裡務必填入您Google表單「備註」欄位的ID ★★★
+            remarks:      "entry.370850133請填入備註ID"  // ★★★ 請注意：這裡務必填入您Google表單「備註」欄位的ID ★★★
         };
 
         // LINE Pay 連結
@@ -385,21 +407,26 @@
             const hint = document.getElementById('date-hint');
             const addressRow = document.getElementById('address-row');
             const pickupInfoBox = document.getElementById('pickup-info-box');
+            const deliveryInfoBox = document.getElementById('delivery-info-box');
             
             const now = new Date();
             const currentHour = now.getHours();
 
             if (mode === 'delivery') {
+                // 宅配模式
                 selectEl.style.display = 'none';
                 deliveryText.style.display = 'block';
                 hint.innerText = "提醒：宅配默認不指定日期出貨，若需指定日期請先與店家詢問。";
                 addressRow.style.display = 'block';
                 pickupInfoBox.style.display = 'none'; 
+                deliveryInfoBox.style.display = 'block'; // 顯示宅配說明
             } else {
+                // 自取模式
                 selectEl.style.display = 'block';
                 deliveryText.style.display = 'none';
                 addressRow.style.display = 'none';
-                pickupInfoBox.style.display = 'block'; 
+                pickupInfoBox.style.display = 'block'; // 顯示自取說明
+                deliveryInfoBox.style.display = 'none';
 
                 let daysToAdd = (currentHour < 12) ? 2 : 3; 
                 hint.innerText = (currentHour < 12) 
@@ -423,14 +450,14 @@
                 let current = new Date(startDate);
                 current.setDate(startDate.getDate() + i);
                 
-                let day = current.getDay(); // 0=日, 1=一, 2=二, 3=三, 4=四, 5=五, 6=六
+                let day = current.getDay(); 
                 let month = current.getMonth() + 1;
                 let date = current.getDate();
                 let dayStr = ['日','一','二','三','四','五','六'][day];
                 let dateStr = `${month}/${date} (週${dayStr})`;
                 let fullDateStr = `${current.getFullYear()}/${String(month).padStart(2,'0')}/${String(date).padStart(2,'0')} (${dayStr})`;
 
-                // 週二(2) 到 週五(5) -> 兩個時段 (12:00~13:00 / 17:00~18:00)
+                // ★邏輯：週二(2) 到 週五(5) -> 兩個時段 (12:00~13:00 / 17:00~18:00)
                 if (day >= 2 && day <= 5) {
                     let opt1 = document.createElement('option');
                     opt1.value = `${fullDateStr} 12:00~13:00`;
@@ -442,14 +469,13 @@
                     opt2.innerText = `${dateStr} 17:00~18:00`;
                     select.appendChild(opt2);
                 }
-                // 週六(6) -> 一個時段
+                // ★邏輯：週六(6) -> 一個時段
                 else if (day === 6) {
                     let opt3 = document.createElement('option');
                     opt3.value = `${fullDateStr} 10:00~12:00`;
                     opt3.innerText = `${dateStr} 10:00~12:00`;
                     select.appendChild(opt3);
                 }
-                // 週日、週一 (0,1) 不產生
             }
         }
 
@@ -588,6 +614,7 @@
                 msgDetails += `- ${p.name} x ${p.quantity} = $${p.price*p.quantity}\n`;
             });
             
+            // 宅配：檢查 6 的倍數
             if (delivery === '宅配' && totalCups % 6 !== 0) {
                 alert(`宅配訂單為了防止運送碰撞，數量必須是 6 的倍數。\n目前數量：${totalCups} 個\n建議調整為 ${Math.ceil(totalCups/6)*6} 或 ${Math.floor(totalCups/6)*6} 個`);
                 return; 
@@ -605,11 +632,18 @@
                 discountText = "(商品已折 5%)";
             }
 
+            // ★★★ 宅配運費邏輯 (以「盒」計算) ★★★
+            // 1盒=6入
             let shippingFee = 0;
             if (delivery === '宅配') {
-                if(totalCups <= 12) shippingFee = 130;
-                else if(totalCups <= 48) shippingFee = 170;
-                else shippingFee = 210;
+                const boxes = totalCups / 6; // 因為前面已檢查過 % 6 === 0，這裡必定是整數
+                if(boxes <= 2) {
+                    shippingFee = 130; // 1-2盒
+                } else if (boxes <= 8) {
+                    shippingFee = 170; // 3-8盒
+                } else {
+                    shippingFee = 210; // 9盒以上
+                }
             }
 
             let finalAllPrice = productFinalPrice + shippingFee;
@@ -645,7 +679,6 @@
 
             let fullOrderInfo = orderDetails + ` [共${totalCups}個]`;
             if(shippingFee > 0) fullOrderInfo += ` [運費$${shippingFee}]`;
-            // ★ 備註不再併入訂單明細，而是透過獨立欄位送出
 
             let formData = new FormData();
             formData.append(FORM_FIELDS.orderContent, fullOrderInfo); 
@@ -659,7 +692,7 @@
             formData.append(FORM_FIELDS.subtotal, productFinalPrice); 
             formData.append(FORM_FIELDS.shipping, shippingFee);        
             formData.append(FORM_FIELDS.totalPrice, finalAllPrice);
-            formData.append(FORM_FIELDS.remarks, remarks); // ★ 新增傳送備註
+            formData.append(FORM_FIELDS.remarks, remarks); 
 
             fetch(GOOGLE_FORM_URL, {
                 method: "POST",
