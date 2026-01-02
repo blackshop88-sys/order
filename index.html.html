@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>鮮奶酪 - 線上預訂</title>
     <style>
-        /* --- 基礎樣式 --- */
+        /* --- 基礎樣式 (經典綠色風格) --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f5f5f5; color: #333; padding-bottom: 140px; }
         
@@ -23,6 +23,29 @@
         .section-header { font-size: 1.1rem; font-weight: bold; margin: 25px 0 10px 0; display: flex; align-items: center; color: #444; }
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
         
+        /* 包裝展示區 (新) */
+        .package-box {
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            border: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+        .package-img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .package-text {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            font-weight: bold;
+        }
+
         /* 菜單 */
         .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .menu-item { background: #fff; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; text-align: center; }
@@ -66,7 +89,7 @@
         .radio-input:checked + span { color: #00c300; font-weight: bold; }
         #address-row { display: none; }
 
-        /* 資訊區塊通用樣式 */
+        /* 資訊區塊 (自取/宅配) */
         .info-box {
             padding: 15px;
             border-radius: 8px;
@@ -76,19 +99,19 @@
             text-align: center;
         }
 
-        /* 自取資訊區塊 (藍色) */
+        /* 自取：藍色 */
         #pickup-info-box {
             background-color: #e3f2fd;
             color: #0d47a1;
             border: 1px solid #bbdefb;
         }
 
-        /* 宅配資訊區塊 (橘色) */
+        /* 宅配：橘色 */
         #delivery-info-box {
             background-color: #fff3e0;
             color: #e65100;
             border: 1px solid #ffe0b2;
-            display: none; /* 預設隱藏 */
+            display: none;
             text-align: left;
         }
         .delivery-title { font-weight: bold; margin-bottom: 5px; font-size: 1rem; }
@@ -157,6 +180,15 @@
         </header>
 
         <div class="container">
+            <div class="section-header">禮盒包裝展示</div>
+            <div class="package-box">
+                <img src="117903.jpg" alt="禮盒包裝" class="package-img">
+                <div class="package-text">
+                    ✨ 質感保冷袋 + 精美禮盒 (6入裝)<br>
+                    送禮自用兩相宜，大吉大利好運到！
+                </div>
+            </div>
+
             <div class="section-header">選擇口味</div>
             <div class="menu-grid" id="menu-list"></div>
 
@@ -356,7 +388,7 @@
             subtotal:     "entry.1558685102", 
             shipping:     "entry.1750953999", 
             totalPrice:   "entry.816848611",
-            remarks:      "entry.370850133"  // ★★★ 請注意：這裡務必填入您Google表單「備註」欄位的ID ★★★
+            remarks:      "entry.370850133"  
         };
 
         // LINE Pay 連結
@@ -419,13 +451,13 @@
                 hint.innerText = "提醒：宅配默認不指定日期出貨，若需指定日期請先與店家詢問。";
                 addressRow.style.display = 'block';
                 pickupInfoBox.style.display = 'none'; 
-                deliveryInfoBox.style.display = 'block'; // 顯示宅配說明
+                deliveryInfoBox.style.display = 'block'; 
             } else {
                 // 自取模式
                 selectEl.style.display = 'block';
                 deliveryText.style.display = 'none';
                 addressRow.style.display = 'none';
-                pickupInfoBox.style.display = 'block'; // 顯示自取說明
+                pickupInfoBox.style.display = 'block'; 
                 deliveryInfoBox.style.display = 'none';
 
                 let daysToAdd = (currentHour < 12) ? 2 : 3; 
@@ -632,11 +664,10 @@
                 discountText = "(商品已折 5%)";
             }
 
-            // ★★★ 宅配運費邏輯 (以「盒」計算) ★★★
-            // 1盒=6入
+            // 宅配運費邏輯 (以「盒」計算)
             let shippingFee = 0;
             if (delivery === '宅配') {
-                const boxes = totalCups / 6; // 因為前面已檢查過 % 6 === 0，這裡必定是整數
+                const boxes = totalCups / 6; 
                 if(boxes <= 2) {
                     shippingFee = 130; // 1-2盒
                 } else if (boxes <= 8) {
