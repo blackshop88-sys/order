@@ -275,6 +275,9 @@
                     <div style="font-weight:bold; margin-top:10px; margin-bottom:5px;">⏰ 自取時段</div>
                     <div>週二至週五：12:00~13:00 / 17:00~18:00</div>
                     <div>週六：10:00~12:00</div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #a6c8e6; color: #d32f2f; font-weight: bold;">
+                        🛵 彰化市自取 單次訂購滿兩盒 可約時間外送
+                    </div>
                 </div>
 
                 <div id="delivery-info-box" class="info-box">
@@ -740,7 +743,7 @@
 
             let finalAllPrice = productFinalPrice + shippingFee;
 
-            // ★ 生成訂單編號 (YYYYMMDDHHMMSS)
+            // ★ 生成純數字的訂單編號 (YYYYMMDDHHMMSS)
             const now = new Date();
             const yyyy = now.getFullYear();
             const mm = String(now.getMonth() + 1).padStart(2, '0');
