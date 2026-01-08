@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>鮮奶酪 - 線上預訂</title>
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17855729381"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17855729381">
+</script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -14,12 +14,6 @@
 
   gtag('config', 'AW-17855729381');
 </script>
-    
-<!-- Event snippet for 網頁瀏覽 conversion page -->
-<script>
-  gtag('event', 'conversion', {'send_to': 'AW-17855729381/ZCzuCKTg490bEOWdo8JC'});
-</script>
-
     
     <style>
         /* --- 基礎樣式 (經典綠色風格) --- */
@@ -40,7 +34,7 @@
         .section-header { font-size: 1.1rem; font-weight: bold; margin: 25px 0 10px 0; display: flex; align-items: center; color: #444; }
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
         
-        /* 包裝/影片展示區 */
+        /* 單一展示區塊 (大格圖片或影片) */
         .package-box {
             background: #fff;
             border-radius: 10px;
@@ -61,6 +55,26 @@
             font-size: 0.9rem;
             line-height: 1.5;
             font-weight: bold;
+        }
+
+        /* 雙欄影片排版 (並排) */
+        .video-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 左右各一半 */
+            gap: 10px; /* 間距 */
+            margin-bottom: 20px;
+        }
+        .video-box {
+            background: #fff;
+            border-radius: 10px;
+            padding: 5px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            border: 1px solid #eee;
+        }
+        .video-box video {
+            width: 100%;
+            border-radius: 6px;
+            display: block;
         }
 
         /* 菜單 */
@@ -197,15 +211,7 @@
         </header>
 
         <div class="container">
-            <div class="section-header">禮盒包裝展示</div>
-            <div class="package-box">
-                <img src="117903.jpg" alt="禮盒包裝" class="package-img">
-                <div class="package-text">
-                    ✨ 質感保冷袋 + 精美禮盒 (6入裝)<br>
-                    送禮自用兩相宜，大吉大利好運到！
-                </div>
-            </div>
-
+            
             <div class="section-header">綿密口感實拍</div>
             <div class="package-box">
                 <video class="package-img" controls autoplay loop muted playsinline>
@@ -215,6 +221,29 @@
                 <div class="package-text">
                     🎥 點擊播放<br>
                     感受每一口的滑順與綿密，真材實料看得見！
+                </div>
+            </div>
+
+            <div class="section-header">🔥 市集排隊實況</div>
+            <div class="video-row">
+                <div class="video-box">
+                    <video controls autoplay loop muted playsinline>
+                        <source src="s1.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <div class="video-box">
+                    <video controls autoplay loop muted playsinline>
+                        <source src="s2.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+
+            <div class="section-header">禮盒包裝展示</div>
+            <div class="package-box">
+                <img src="117903.jpg" alt="禮盒包裝" class="package-img">
+                <div class="package-text">
+                    ✨ 質感保冷袋 + 精美禮盒 (6入裝)<br>
+                    送禮自用兩相宜，大吉大利好運到！
                 </div>
             </div>
 
@@ -822,4 +851,3 @@
     </script>
 </body>
 </html>
-
