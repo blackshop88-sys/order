@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>鮮奶酪 - 線上預訂</title>
 
-<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17855729381">
 </script>
 <script>
@@ -33,7 +34,7 @@
         .section-header { font-size: 1.1rem; font-weight: bold; margin: 25px 0 10px 0; display: flex; align-items: center; color: #444; }
         .section-header::before { content: ''; display: inline-block; width: 5px; height: 18px; background: #00c300; margin-right: 8px; border-radius: 2px; }
         
-        /* 包裝展示區 (新) */
+        /* 包裝/影片展示區 */
         .package-box {
             background: #fff;
             border-radius: 10px;
@@ -196,6 +197,18 @@
                 <div class="package-text">
                     ✨ 質感保冷袋 + 精美禮盒 (6入裝)<br>
                     送禮自用兩相宜，大吉大利好運到！
+                </div>
+            </div>
+
+            <div class="section-header">綿密口感實拍</div>
+            <div class="package-box">
+                <video class="package-img" controls autoplay loop muted playsinline>
+                    <source src="420037fb-8f72-4541-9442-65f63c08cf93.mp4" type="video/mp4">
+                    您的瀏覽器不支援影片播放。
+                </video>
+                <div class="package-text">
+                    🎥 點擊播放<br>
+                    感受每一口的滑順與綿密，真材實料看得見！
                 </div>
             </div>
 
@@ -415,7 +428,7 @@
             { id: 7, name: "伯爵紅茶", price: 50, image: "230241_0.jpg", desc: "大人系口味，佛手柑清香，茶香與奶香圓潤融合。" },
             { id: 8, name: "芋香紫薯", price: 50, image: "230237_0.jpg", desc: "細火熬煮，口感細綿，淡淡芋香與自然紫薯色。" },
             { id: 9, name: "微醺蘭姆", price: 50, image: "230233_0.jpg", desc: "成年人的微醺快樂，淡淡酒香，奶香中帶醉人餘韻。" },
-            { id: 10, name: "十薰茉綠", price: 50, image: "230243.jpg", desc: "茉莉花香與綠茶柔和交織，淡雅茶韻，搭配滑順奶酪。" }
+            { id: 10, name: "十薰茉綠 (限定口味)", price: 50, image: "230243.jpg", desc: "茉莉花香與綠茶柔和交織，淡雅茶韻，搭配滑順奶酪。" }
         ];
 
         let cart = []; 
@@ -656,7 +669,6 @@
                 msgDetails += `- ${p.name} x ${p.quantity} = $${p.price*p.quantity}\n`;
             });
             
-            // 宅配：檢查 6 的倍數
             if (delivery === '宅配' && totalCups % 6 !== 0) {
                 alert(`宅配訂單為了防止運送碰撞，數量必須是 6 的倍數。\n目前數量：${totalCups} 個\n建議調整為 ${Math.ceil(totalCups/6)*6} 或 ${Math.floor(totalCups/6)*6} 個`);
                 return; 
@@ -674,16 +686,15 @@
                 discountText = "(商品已折 5%)";
             }
 
-            // 宅配運費邏輯 (以「盒」計算)
             let shippingFee = 0;
             if (delivery === '宅配') {
                 const boxes = totalCups / 6; 
                 if(boxes <= 2) {
-                    shippingFee = 130; // 1-2盒
+                    shippingFee = 130; 
                 } else if (boxes <= 8) {
-                    shippingFee = 170; // 3-8盒
+                    shippingFee = 170; 
                 } else {
-                    shippingFee = 210; // 9盒以上
+                    shippingFee = 210; 
                 }
             }
 
@@ -805,9 +816,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
