@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>鮮奶酪 - 線上預訂</title>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17855729381">
-</script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17855729381"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
 
-  gtag('config', 'AW-17855729381');
-</script>
+      gtag('config', 'AW-17855729381');
+    </script>
     
     <style>
         /* --- 基礎樣式 (經典綠色風格) --- */
@@ -391,6 +390,7 @@
         </div>
 
         <div class="receipt-card">
+            <div class="receipt-row"><span>訂單編號</span><span id="receipt-order-id" style="font-weight:bold; color:#00c300;"></span></div>
             <div class="receipt-row"><span>總數量</span><span id="receipt-cups"></span></div>
             <div class="receipt-row"><span>訂購人</span><span id="receipt-name"></span></div>
             <div class="receipt-row"><span>電話</span><span id="receipt-phone"></span></div>
@@ -446,7 +446,8 @@
             subtotal:     "entry.1558685102", 
             shipping:     "entry.1750953999", 
             totalPrice:   "entry.816848611",
-            remarks:      "entry.370850133"  
+            remarks:      "entry.370850133",  // 備註欄位 ID
+            orderId:      "entry.846286532"  // ★★★ 請去 Google 表單取得「訂單編號」欄位的 ID 並填入這裡 ★★★
         };
 
         // LINE Pay 連結
@@ -596,6 +597,10 @@
             const existingItem = cart.find(item => item.id === id);
             if (existingItem) existingItem.quantity++;
             else cart.push({ ...menuData.find(p => p.id === id), quantity: 1 });
+            
+            // Google Ads Conversion
+            gtag('event', 'conversion', {'send_to': 'AW-17855729381/CJdUcKeW794bEOwDo8JC'});
+
             renderCart();
         }
 
@@ -735,7 +740,19 @@
 
             let finalAllPrice = productFinalPrice + shippingFee;
 
-            let confirmMsg = `【訂單確認】\n---------------------\n`;
+            // ★ 生成訂單編號 (YYYYMMDDHHMMSS)
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            const sec = String(now.getSeconds()).padStart(2, '0');
+            
+            // 格式：20260208153000
+            const orderId = `${yyyy}${mm}${dd}${hh}${min}${sec}`;
+
+            let confirmMsg = `【訂單編號：${orderId}】\n---------------------\n`;
             confirmMsg += `總數量：${totalCups} 個\n`;
             confirmMsg += msgDetails;
             confirmMsg += `---------------------\n`;
@@ -764,6 +781,7 @@
             loadingOverlay.style.display = 'flex';
             document.getElementById('submit-btn').disabled = true;
 
+            // ★ 修正：訂單明細字串 (不含訂單編號，保持乾淨)
             let fullOrderInfo = orderDetails + ` [共${totalCups}個]`;
             if(shippingFee > 0) fullOrderInfo += ` [運費$${shippingFee}]`;
 
@@ -779,14 +797,15 @@
             formData.append(FORM_FIELDS.subtotal, productFinalPrice); 
             formData.append(FORM_FIELDS.shipping, shippingFee);        
             formData.append(FORM_FIELDS.totalPrice, finalAllPrice);
-            formData.append(FORM_FIELDS.remarks, remarks); 
+            formData.append(FORM_FIELDS.remarks, remarks);
+            formData.append(FORM_FIELDS.orderId, orderId); // ★ 這裡將訂單編號送出到獨立欄位
 
             fetch(GOOGLE_FORM_URL, {
                 method: "POST",
                 body: formData,
                 mode: "no-cors"
             }).then(() => {
-                showReceipt(name, phone, finalDateStr, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks);
+                showReceipt(name, phone, finalDateStr, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks, orderId);
                 loadingOverlay.style.display = 'none';
             }).catch(err => {
                 alert("訂單傳送失敗，請檢查網路或稍後再試。\n" + err);
@@ -795,10 +814,13 @@
             });
         }
 
-        function showReceipt(name, phone, dateStr, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks) {
+        function showReceipt(name, phone, dateStr, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks, orderId) {
             const now = new Date();
             document.getElementById('receipt-time').innerText = "訂單時間：" + now.toLocaleString('zh-TW', {hour12: false});
             
+            // 顯示訂單編號
+            document.getElementById('receipt-order-id').innerText = orderId;
+
             let itemsHtml = '';
             cart.forEach(p => {
                 itemsHtml += `<div class="receipt-row"><span>${p.name} x ${p.quantity}</span><span>$${p.price * p.quantity}</span></div>`;
