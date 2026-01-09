@@ -79,7 +79,8 @@
             font-size: 14px;
         }
 
-        input.text-input {
+        /* 通用輸入框樣式 (包含 input 和 textarea) */
+        input.text-input, textarea.text-input {
             border: none;
             border-bottom: 1px solid #999;
             background: transparent;
@@ -91,8 +92,17 @@
             outline: none;
             transition: border-color 0.3s;
         }
+        
+        /* textarea 專用修正 */
+        textarea.text-input {
+            resize: none; /* 隱藏右下角拉動圖示 */
+            overflow: hidden; /* 隱藏捲軸 */
+            vertical-align: top;
+            min-height: 24px; /* 預設高度 */
+            line-height: 1.5;
+        }
 
-        input.text-input:focus {
+        input.text-input:focus, textarea.text-input:focus {
             border-bottom-color: var(--accent-color);
             background-color: #fffef0;
         }
@@ -133,7 +143,6 @@
 
         tr:hover { background-color: #f9f9f9; }
 
-        /* 輸入框樣式 */
         input.qty-input, input.price-edit-input {
             width: 80px;
             padding: 2px;
@@ -143,12 +152,11 @@
             font-size: 15px;
         }
         
-        /* 預設隱藏價格編輯框 */
         input.price-edit-input {
             display: none; 
             text-align: right;
             width: 100%;
-            border-color: #2980b9; /* 編輯模式用藍色邊框區別 */
+            border-color: #2980b9; 
             background-color: #ebf5fb;
         }
 
@@ -257,10 +265,9 @@
         button.btn-add { background-color: #27ae60; }
         button.btn-add:hover { background-color: #219150; }
         
-        /* 價格修改按鈕 */
         button.btn-edit-price { background-color: #8e44ad; }
         button.btn-edit-price:hover { background-color: #732d91; }
-        button.btn-edit-price.active { background-color: #c0392b; } /* 鎖定狀態變紅色 */
+        button.btn-edit-price.active { background-color: #c0392b; }
 
         .delete-btn {
             color: red;
@@ -299,11 +306,17 @@
             
             .actions, .delete-btn { display: none !important; }
 
-            input.text-input { border-bottom: 1px solid #000; padding: 0 2px; }
+            /* 文字框列印設定 */
+            input.text-input, textarea.text-input { 
+                border-bottom: 1px solid #000; 
+                padding: 0 2px;
+                /* 列印時確保 textarea 不會有捲軸，而是顯示全部內容 */
+                overflow: visible; 
+            }
+            
             input.main-title-input { border: none; color: #000; text-align: center; }
             input.qty-input { display: none; }
             
-            /* 列印時強制顯示文字價格，隱藏編輯框 */
             .price-display { display: inline !important; }
             .price-edit-input { display: none !important; }
 
@@ -413,7 +426,7 @@
             <div class="term-item">
                 <div class="term-num">1.</div>
                 <div class="term-content">
-                    收款進度: <input type="text" class="text-input" style="width: 60%;" placeholder="請輸入收款方式">
+                    收款進度: <textarea class="text-input auto-resize" rows="1" placeholder="請輸入收款方式 (文字過長會自動換行)"></textarea>
                 </div>
             </div>
             <div class="term-item">
@@ -479,7 +492,6 @@
         { name: "矽酸鈣板輕鋼架天花板", unit: "坪", price: 2200, min: 3 },
         { name: "木作矽酸鈣板天花板6mm", unit: "坪", price: 4200, min: 2 },
         { name: "批AB膠透批白土", unit: "坪", price: 1800, min: 3 },
-        // 修改後的單價：
         { name: "窗簾盒批AB膠透批白土", unit: "尺", price: 300, min: 8 },
         { name: "冷氣盒批AB膠透批白土", unit: "個", price: 2300, min: 2 },
         { name: "壁面水泥漆刷三次 (不包含批孔)", unit: "坪", price: 800, min: 6 },
@@ -496,17 +508,15 @@
     const dateDisplay = document.getElementById('date-display');
     const priceToggleBtn = document.getElementById('btn-price-toggle');
     
-    let isPriceEditing = false; // 追蹤價格編輯狀態
+    let isPriceEditing = false; 
 
-    // 設定今日日期
     const today = new Date();
     dateDisplay.innerText = `報價日期: ${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
 
-    // 初始化表格
     function initTable() {
         items.forEach((item, index) => {
             const tr = document.createElement('tr');
-            tr.className = 'empty-row'; // 預設標記為空行
+            tr.className = 'empty-row'; 
             
             let minRuleText = "";
             if (item.min > 1) {
@@ -534,7 +544,6 @@
         });
     }
 
-    // 切換價格編輯模式
     function togglePriceEdit() {
         isPriceEditing = !isPriceEditing;
         
@@ -554,20 +563,14 @@
         }
     }
 
-    // 更新項目單價 (當編輯框輸入時)
     function updateItemPrice(index, newPrice) {
         const price = parseFloat(newPrice) || 0;
-        items[index].price = price; // 更新資料庫
-        
-        // 更新顯示文字 (加逗號)
+        items[index].price = price; 
         document.getElementById(`price-display-${index}`).innerText = price.toLocaleString();
-        
-        // 觸發重新計算 (抓取目前的數量)
         const qtyInput = document.querySelectorAll('.qty-input')[index];
         calculateRow(index, qtyInput.value);
     }
 
-    // 計算預設項目的邏輯
     function calculateRow(index, value) {
         const item = items[index];
         const qty = parseFloat(value);
@@ -578,14 +581,13 @@
         if (isNaN(qty) || qty === 0) {
             subtotalEl.innerText = "0";
             printQtyEl.innerText = "";
-            row.classList.add('empty-row'); // 列印時隱藏
+            row.classList.add('empty-row'); 
             updateTotal();
             return;
         }
 
-        row.classList.remove('empty-row'); // 列印時顯示
+        row.classList.remove('empty-row'); 
 
-        // 計算邏輯：有最低低消
         let billingQty = qty;
         let isMinCharge = false;
 
@@ -597,7 +599,6 @@
         const total = billingQty * item.price;
         subtotalEl.innerText = total.toLocaleString();
         
-        // 列印顯示文字
         if (isMinCharge) {
             printQtyEl.innerText = `${qty} (以${item.min}計)`;
         } else {
@@ -607,10 +608,9 @@
         updateTotal();
     }
 
-    // 新增自訂項目
     function addCustomRow() {
         const tr = document.createElement('tr');
-        tr.className = 'custom-row'; // 標記為自訂行，總是顯示
+        tr.className = 'custom-row'; 
         
         tr.innerHTML = `
             <td class="center-text"><span class="index-cell"></span></td>
@@ -632,7 +632,6 @@
         tbody.appendChild(tr);
     }
 
-    // 計算自訂項目的邏輯
     function calculateCustomRow(input) {
         const row = input.closest('tr');
         const priceInput = row.querySelector('.price-input');
@@ -645,16 +644,13 @@
         
         const total = price * qty;
         
-        // 更新複價顯示 (保留刪除按鈕)
         subtotalEl.innerHTML = `${total.toLocaleString()} <span class="delete-btn" onclick="removeCustomRow(this)" title="刪除此行">✕</span>`;
         
-        // 更新列印時的數量文字
         printQtyEl.innerText = qtyInput.value;
 
         updateTotal();
     }
 
-    // 刪除自訂行
     function removeCustomRow(btn) {
         if(confirm("確定刪除此項目？")) {
             const row = btn.closest('tr');
@@ -663,7 +659,6 @@
         }
     }
 
-    // 計算總價
     function updateTotal() {
         let grandTotal = 0;
         const subtotalEls = document.querySelectorAll('.subtotal-col');
@@ -675,29 +670,40 @@
         totalSpan.innerText = grandTotal.toLocaleString();
     }
 
-    // 重置
     function resetForm() {
         if(confirm("確定要清除所有輸入嗎？")) {
-            // 清除預設數值
             const qtyInputs = document.querySelectorAll('.qty-input');
             qtyInputs.forEach(input => {
                 input.value = '';
                 input.dispatchEvent(new Event('input'));
             });
-            // 清除文字輸入 (不含地址)
             const textInputs = document.querySelectorAll('.text-input');
             textInputs.forEach(input => {
-                if (input.value !== "彰化市金馬路 2 段 519 號") {
+                // 不清除地址與Textarea以外的文字框 (Textarea在這邊被視為 .text-input)
+                if (input.value !== "彰化市金馬路 2 段 519 號" && !input.classList.contains('auto-resize')) {
+                   input.value = '';
+                }
+                // 特別處理 Textarea
+                if (input.tagName === 'TEXTAREA') {
                     input.value = '';
+                    input.style.height = 'auto'; // 重置高度
                 }
             });
-            // 移除所有自訂行
             const customRows = document.querySelectorAll('.custom-row');
             customRows.forEach(row => row.remove());
             
             updateTotal();
         }
     }
+
+    // 自動調整 Textarea 高度
+    document.addEventListener('input', function (event) {
+        if (event.target.classList.contains('auto-resize')) {
+            const textarea = event.target;
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+    }, false);
 
     initTable();
 </script>
