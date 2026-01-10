@@ -76,6 +76,32 @@
             display: block;
         }
 
+        /* 品牌故事區塊 */
+        .brand-story {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+            line-height: 1.8;
+            color: #555;
+            text-align: justify;
+        }
+        .brand-story h3 {
+            text-align: center;
+            color: #2e7d32;
+            margin: 0 0 15px 0;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .brand-story p {
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+        .brand-story p:last-child {
+            margin-bottom: 0;
+        }
+
         /* 菜單 */
         .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .menu-item { background: #fff; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #eee; text-align: center; }
@@ -259,6 +285,15 @@
                     ✨ 質感保冷袋 + 精美禮盒 (6入裝)<br>
                     送禮自用兩相宜，大吉大利好運到！
                 </div>
+            </div>
+
+            <div class="section-header">關於我們</div>
+            <div class="brand-story">
+                <h3>好酪 —— 三寶媽的溫柔堅持，從廚房到市集的美味旅程。</h3>
+                <p>「好酪」的故事，始於一個母親對孩子的愛，卻成形於一次次勇敢的嘗試。</p>
+                <p>為了讓三個孩子吃到最純粹、無添加的點心，我開始鑽研奶酪的製作。起初只是家裡的私房甜點，但在先生的鼓勵下，我決定跨出舒適圈。不僅投保產品責任險、完成合法的食品業者登錄，為了證明「媽媽手作」也能有職人水準，我更努力考取了國家級烘焙證照，用專業知識為家人的健康把關。</p>
+                <p>雖然沒有華麗店面，但我們勤跑市集，推著攤位在風吹日曬中與大家見面。每一次在市集看到客人試吃後驚艷的表情，或是聽見老客人特地跑來回購的一聲招呼，都是我們堅持下去的動力。</p>
+                <p>從醫院、公司的團購口碑，到市集裡的真實互動，「好酪」一步一腳印，用最嚴謹的態度與最真實的原料，呈現這份簡單卻不簡單的美味。</p>
             </div>
 
             <div class="section-header">選擇口味</div>
@@ -471,8 +506,8 @@
     <script>
         // --- 設定區 ---
         
-        // ★★★ 請記得填入您的 Apps Script 網址以啟用流量統計 ★★★
-        const TRAFFIC_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjuE_fEjM0TLgmubx2aM6HWYI_YHq9ZI-3er-QUW3EzOOlE4fV1AbhvtEJ58s8CsQ/exec"; 
+        // ★★★ 請務必確認這裡的網址已填入您的 Apps Script 網址 (如果沒有要流量統計可留空) ★★★
+        const TRAFFIC_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwm969B61W5-iVyi1JliST1hUYeyDvXJkpu_W55_5pshGIxuqUso8lSmR9bnYfLRbM/exec"; 
         
         // Google Form 回傳網址
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSenpCJdVZWJ4seiaz4GimXwasppPbnX3o1pLGyrnIMWaJ_sqw/formResponse";
