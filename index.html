@@ -383,7 +383,6 @@
                 訂購電話: 0972-005078<br>
                 食品登錄字號: N-194427773-00000-4<br>
                 已投保 國泰產險 產品責任險<br><br>
-                
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <a href="https://lin.ee/UHEkfgW" target="_blank" class="line-btn-style">
                         💬 點擊加入官方 LINE
@@ -472,7 +471,7 @@
     <script>
         // --- 設定區 ---
         
-        // ★★★ 請務必確認這裡的網址已填入您的 Apps Script 網址 (如果沒有要流量統計可留空) ★★★
+        // ★★★ 請記得填入您的 Apps Script 網址以啟用流量統計 ★★★
         const TRAFFIC_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjuE_fEjM0TLgmubx2aM6HWYI_YHq9ZI-3er-QUW3EzOOlE4fV1AbhvtEJ58s8CsQ/exec"; 
         
         // Google Form 回傳網址
@@ -542,7 +541,6 @@
 
         // 流量統計函數
         function logVisit() {
-            // 如果還沒填入網址，就不執行
             if(!TRAFFIC_SCRIPT_URL || TRAFFIC_SCRIPT_URL.includes("YOUR_ID_HERE")) return;
 
             fetch(TRAFFIC_SCRIPT_URL, {
