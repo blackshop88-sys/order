@@ -684,7 +684,7 @@
             else cart.push({ ...menuData.find(p => p.id === id), quantity: 1 });
             
             // Google Ads Conversion
-            gtag('event', 'conversion', {'send_to': 'AW-17855729381/CJdUcKeW794bEOwDo8JC'});
+           
 
             renderCart();
         }
@@ -891,6 +891,9 @@
                 body: formData,
                 mode: "no-cors"
             }).then(() => {
+                // ★★★ 放在這裡才是對的！只有訂單送出成功才算轉換 ★★★
+                gtag('event', 'conversion', {'send_to': 'AW-17855729381/CJdUcKeW794bEOwDo8JC'});
+
                 showReceipt(name, phone, finalDateStr, delivery, payment, fullAddress, finalAllPrice, totalCups, shippingFee, remarks, orderId);
                 loadingOverlay.style.display = 'none';
             }).catch(err => {
@@ -959,3 +962,4 @@
     </script>
 </body>
 </html>
+
