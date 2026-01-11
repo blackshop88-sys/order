@@ -14,8 +14,6 @@
       gtag('config', 'AW-17855729381');
     </script>
     
-    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-    
     <style>
         /* --- 基礎樣式 (經典綠色風格) --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
@@ -429,11 +427,6 @@
                 食品登錄字號: N-194427773-00000-4<br>
                 已投保 國泰產險 產品責任險<br><br>
                 
-                <span id="busuanzi_container_site_pv" style="display:none;">
-                    累積瀏覽人次：<span id="busuanzi_value_site_pv"></span>
-                </span>
-                <br><br>
-
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <a href="https://lin.ee/UHEkfgW" target="_blank" class="line-btn-style">
                         💬 點擊加入官方 LINE
@@ -522,8 +515,6 @@
     <script>
         // --- 設定區 ---
         
-        // ★★★ 請務必確認這裡的網址已填入您的 Apps Script 網址 (如果沒有要流量統計可留空) ★★
-        
         // Google Form 回傳網址
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSenpCJdVZWJ4seiaz4GimXwasppPbnX3o1pLGyrnIMWaJ_sqw/formResponse";
         
@@ -569,9 +560,6 @@
         const loadingOverlay = document.getElementById('loading-overlay');
 
         function init() {
-            // 流量統計
-            logVisit();
-
             menuContainer.innerHTML = '';
             menuData.forEach(item => {
                 const div = document.createElement('div');
@@ -587,17 +575,6 @@
             });
             updateDateSettings('pickup');
             renderCart();
-        }
-
-        // 流量統計函數
-        function logVisit() {
-            if(!TRAFFIC_SCRIPT_URL || TRAFFIC_SCRIPT_URL.includes("YOUR_ID_HERE")) return;
-
-            fetch(TRAFFIC_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors", 
-                body: JSON.stringify({ action: "view" }) 
-            }).catch(err => console.log("Tracking log error (safe to ignore)"));
         }
 
         function updateDateSettings(mode) {
@@ -982,5 +959,3 @@
     </script>
 </body>
 </html>
-
-
