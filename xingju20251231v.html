@@ -40,7 +40,7 @@
             border: none;
             border-bottom: 2px solid transparent;
             background: transparent;
-            margin-bottom: 20px;
+            margin-bottom: 30px; /* 增加標題下方留白 */
             letter-spacing: 2px;
             outline: none;
             padding: 5px;
@@ -51,21 +51,21 @@
             background-color: #fffef0;
         }
 
-        /* --- 左右分欄佈局 --- */
+        /* --- 左右分欄佈局 (Header Info) --- */
         .info-split-container {
             display: flex;
             justify-content: space-between;
             gap: 40px;
-            margin-bottom: 20px;
+            margin-bottom: 30px; /* 增加區塊間距 */
             border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 15px;
+            padding-bottom: 20px; /* 增加底線距離 */
         }
 
         .info-panel {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 15px; /* 【修改】行距由 5px 改為 15px (1.5倍寬鬆感) */
         }
 
         .info-row {
@@ -77,7 +77,7 @@
             font-weight: bold;
             min-width: 70px;
             color: #555;
-            font-size: 14px;
+            font-size: 15px; /* 字體微調 */
         }
 
         /* 通用輸入框樣式 */
@@ -85,8 +85,8 @@
             border: none;
             border-bottom: 1px solid #999;
             background: transparent;
-            padding: 2px;
-            font-size: 15px;
+            padding: 6px 2px; /* 【修改】上下內距增加，讓輸入框變高 */
+            font-size: 16px; /* 字體加大 */
             font-family: inherit;
             flex-grow: 1;
             width: 100%;
@@ -98,7 +98,7 @@
             resize: none;
             overflow: hidden;
             vertical-align: top;
-            min-height: 24px;
+            min-height: 30px; /* 【修改】預設高度增加 */
             line-height: 1.5;
         }
 
@@ -113,20 +113,20 @@
         
         .date-display {
             text-align: right;
-            margin-top: 5px;
-            font-size: 14px;
+            margin-top: 10px; /* 增加日期上方間距 */
+            font-size: 15px;
             color: #555;
         }
 
-        /* --- 表格樣式 --- */
+        /* --- 表格樣式 (保持緊湊或依需求調整) --- */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
 
         th, td {
-            padding: 6px 4px;
+            padding: 8px 6px; /* 表格維持適中高度，若需變高可改為 10px 8px */
             text-align: left;
             border-bottom: 1px solid var(--border-color);
             font-size: 15px;
@@ -166,7 +166,7 @@
         input.qty-input, input.price-edit-input {
             width: 90%;
             min-width: 40px;
-            padding: 2px;
+            padding: 4px 2px; /* 稍微增加輸入框高度 */
             border: 1px solid #ccc;
             border-radius: 4px;
             text-align: center;
@@ -184,7 +184,7 @@
         
         input.name-edit-input {
             width: 100%;
-            padding: 2px;
+            padding: 4px 2px;
             border: 1px solid #2980b9;
             border-radius: 4px;
             font-size: 15px;
@@ -199,9 +199,8 @@
         .min-rule {
             font-size: 11px;
             color: #7f8c8d;
-            display: block; /* 預設顯示，JS會控制 */
+            display: block;
             margin-top: 2px;
-            transition: opacity 0.3s;
         }
 
         /* --- 底部佈局容器 --- */
@@ -209,15 +208,15 @@
             display: flex;
             justify-content: space-between;
             align-items: stretch;
-            margin-top: 10px;
+            margin-top: 20px; /* 增加上方間距 */
         }
 
         .terms-section {
             width: 55%;
             border: 1px solid #000;
-            padding: 15px;
-            font-size: 14px;
-            line-height: 1.6;
+            padding: 20px; /* 增加內距 */
+            font-size: 15px; /* 字體加大 */
+            line-height: 1.8; /* 行高加大 */
             text-align: left;
             box-sizing: border-box;
         }
@@ -232,15 +231,16 @@
 
         .terms-title {
             font-weight: bold;
-            font-size: 15px;
-            margin-bottom: 8px;
+            font-size: 16px;
+            margin-bottom: 15px; /* 標題與內容距離加大 */
             display: inline-block;
             background: #eee;
-            padding: 3px 8px;
+            padding: 5px 10px;
         }
 
-        .term-item { display: flex; margin-bottom: 5px; }
-        .term-num { min-width: 20px; }
+        /* 【修改】備註條款的行距加大 */
+        .term-item { display: flex; margin-bottom: 12px; } 
+        .term-num { min-width: 25px; }
         .term-content { flex-grow: 1; }
 
         .total-section {
@@ -254,16 +254,16 @@
         }
 
         .total-row {
-            margin-bottom: 5px;
+            margin-bottom: 8px; /* 金額行距加大 */
         }
 
         .grand-total-row {
-            font-size: 24px;
+            font-size: 26px; /* 總金額字體加大 */
             font-weight: bold;
             color: var(--primary-color);
-            margin-top: 5px;
+            margin-top: 10px;
             border-top: 1px solid #eee;
-            padding-top: 5px;
+            padding-top: 10px;
         }
 
         .owner-sign-box {
@@ -272,9 +272,9 @@
         }
 
         .owner-sign-title {
-            font-size: 16px;
+            font-size: 18px; /* 簽名字體加大 */
             font-weight: bold;
-            margin-bottom: 40px;
+            margin-bottom: 60px; /* 簽名空間加大 */
             text-align: center;
         }
 
@@ -352,7 +352,7 @@
 
             input.text-input, textarea.text-input { 
                 border-bottom: 1px solid #000; 
-                padding: 0 2px;
+                padding: 4px 2px; /* 列印時保持高度 */
                 overflow: visible; 
             }
             
@@ -370,10 +370,10 @@
                 background-color: #eee !important;
                 color: black !important;
                 -webkit-print-color-adjust: exact;
-                padding: 4px 8px;
+                padding: 6px 8px;
             }
             td {
-                padding: 4px 8px;
+                padding: 6px 8px;
             }
             
             .bottom-layout {
@@ -646,15 +646,14 @@
         const qty = parseFloat(value);
         const subtotalEl = document.getElementById(`subtotal-${index}`);
         const printQtyEl = document.getElementById(`print-qty-${index}`);
-        const ruleEl = document.getElementById(`rule-${index}`); // 取得提示 span
+        const ruleEl = document.getElementById(`rule-${index}`); 
         const row = subtotalEl.closest('tr');
 
-        // 動態控制提示顯示
         if (ruleEl) {
             if (qty >= item.min) {
-                ruleEl.style.display = 'none'; // 滿足最低消，隱藏提示
+                ruleEl.style.display = 'none'; 
             } else {
-                ruleEl.style.display = 'inline'; // 不滿足 (或未輸入)，顯示提示
+                ruleEl.style.display = 'inline'; 
             }
         }
 
@@ -751,7 +750,6 @@
         const tax = Math.round(subtotal * 0.05);
         const grandTotal = subtotal + tax;
 
-        // 更新介面
         document.getElementById('subtotal-display').innerText = subtotal.toLocaleString();
         document.getElementById('tax-display').innerText = tax.toLocaleString();
         document.getElementById('grand-total-display').innerText = grandTotal.toLocaleString();
