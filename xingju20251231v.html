@@ -199,8 +199,9 @@
         .min-rule {
             font-size: 11px;
             color: #7f8c8d;
-            display: block;
+            display: block; /* 預設顯示，JS會控制 */
             margin-top: 2px;
+            transition: opacity 0.3s;
         }
 
         /* --- 底部佈局容器 --- */
@@ -242,14 +243,13 @@
         .term-num { min-width: 20px; }
         .term-content { flex-grow: 1; }
 
-        /* 金額統計區塊樣式調整 */
         .total-section {
             text-align: right;
             padding-top: 10px;
             margin-bottom: 10px;
             border-top: 3px double var(--border-color);
             width: 100%;
-            font-size: 16px; /* 基礎字體 */
+            font-size: 16px;
             color: #333;
         }
 
@@ -257,7 +257,6 @@
             margin-bottom: 5px;
         }
 
-        /* 總計 (含稅) 特別樣式 */
         .grand-total-row {
             font-size: 24px;
             font-weight: bold;
@@ -574,7 +573,8 @@
             
             let minRuleText = "";
             if (item.min > 1) {
-                minRuleText = `<span class="min-rule">(不滿${item.min}${item.unit}以${item.min}${item.unit}計)</span>`;
+                // 給 span 一個 id 以便動態控制
+                minRuleText = `<span class="min-rule" id="rule-${index}">(不滿${item.min}${item.unit}以${item.min}${item.unit}計)</span>`;
             }
 
             tr.innerHTML = `
@@ -646,7 +646,17 @@
         const qty = parseFloat(value);
         const subtotalEl = document.getElementById(`subtotal-${index}`);
         const printQtyEl = document.getElementById(`print-qty-${index}`);
+        const ruleEl = document.getElementById(`rule-${index}`); // 取得提示 span
         const row = subtotalEl.closest('tr');
+
+        // 動態控制提示顯示
+        if (ruleEl) {
+            if (qty >= item.min) {
+                ruleEl.style.display = 'none'; // 滿足最低消，隱藏提示
+            } else {
+                ruleEl.style.display = 'inline'; // 不滿足 (或未輸入)，顯示提示
+            }
+        }
 
         if (isNaN(qty) || qty === 0) {
             subtotalEl.innerText = "0";
@@ -729,13 +739,11 @@
         }
     }
 
-    // 更新總價邏輯 (包含稅額)
     function updateTotal() {
         let subtotal = 0;
         const subtotalEls = document.querySelectorAll('.subtotal-col');
         
         subtotalEls.forEach(el => {
-            // 移除逗號與刪除符號後轉數字
             subtotal += parseInt(el.innerText.replace(/,/g, '').replace('✕', '')) || 0;
         });
 
