@@ -40,7 +40,7 @@
             border: none;
             border-bottom: 2px solid transparent;
             background: transparent;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             letter-spacing: 2px;
             outline: none;
             padding: 5px;
@@ -51,7 +51,7 @@
             background-color: #fffef0;
         }
 
-        /* --- 左右分欄佈局 (表頭) --- */
+        /* --- 左右分欄佈局 --- */
         .info-split-container {
             display: flex;
             justify-content: space-between;
@@ -65,8 +65,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            /* 【保留】表頭行距維持 1.5 倍 (15px) */
-            gap: 15px; 
+            gap: 15px; /* 表頭行距 1.5 倍 */
         }
 
         .info-row {
@@ -86,8 +85,7 @@
             border: none;
             border-bottom: 1px solid #999;
             background: transparent;
-            /* 【恢復】預設內距改回緊湊 (2px) */
-            padding: 2px; 
+            padding: 2px;
             font-size: 15px;
             font-family: inherit;
             flex-grow: 1;
@@ -96,17 +94,17 @@
             transition: border-color 0.3s;
         }
         
-        /* 【新增】特別針對表頭區的輸入框加大高度 */
+        /* 表頭輸入框高度 */
         .info-panel input.text-input {
-            padding: 6px 2px; /* 表頭輸入框加高 */
-            font-size: 16px;  /* 表頭字體加大 */
+            padding: 6px 2px;
+            font-size: 16px;
         }
         
         textarea.text-input {
             resize: none;
             overflow: hidden;
             vertical-align: top;
-            min-height: 24px;
+            min-height: 30px;
             line-height: 1.5;
         }
 
@@ -134,8 +132,7 @@
         }
 
         th, td {
-            /* 【恢復】表格內距改回緊湊 (6px 4px) */
-            padding: 6px 4px; 
+            padding: 6px 4px;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
             font-size: 15px;
@@ -247,7 +244,6 @@
             padding: 3px 8px;
         }
 
-        /* 【恢復】備註條款行距改回緊湊 (5px) */
         .term-item { display: flex; margin-bottom: 5px; }
         .term-num { min-width: 20px; }
         .term-content { flex-grow: 1; }
@@ -359,15 +355,20 @@
             
             .actions, .delete-btn { display: none !important; }
 
-            input.text-input, textarea.text-input { 
+            /* 【重點修改】列印時，單行輸入框強制不換行 (nowrap) */
+            input.text-input { 
                 border-bottom: 1px solid #000; 
-                padding: 2px;
-                overflow: visible; 
+                padding: 4px 2px;
+                white-space: nowrap; /* 禁止換行 */
+                overflow: hidden;    /* 超出隱藏，避免破壞版面 */
             }
             
-            /* 列印時特別設定表頭高度 */
-            .info-panel input.text-input {
-                padding: 6px 2px;
+            /* 【重點修改】備註的 textarea 允許換行 */
+            textarea.text-input { 
+                border-bottom: 1px solid #000; 
+                padding: 2px;
+                overflow: visible;   /* 顯示全部內容 */
+                white-space: pre-wrap; /* 允許換行 */
             }
             
             input.main-title-input { border: none; color: #000; text-align: center; }
@@ -384,10 +385,10 @@
                 background-color: #eee !important;
                 color: black !important;
                 -webkit-print-color-adjust: exact;
-                padding: 4px 8px;
+                padding: 6px 8px;
             }
             td {
-                padding: 4px 8px;
+                padding: 6px 8px;
             }
             
             .bottom-layout {
