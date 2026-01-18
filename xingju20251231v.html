@@ -174,7 +174,6 @@
             box-sizing: border-box;
         }
         
-        /* 預設隱藏的編輯框 (價格與名稱) */
         input.price-edit-input, input.name-edit-input {
             display: none; 
             border-color: #2980b9; 
@@ -183,7 +182,6 @@
         
         input.price-edit-input { text-align: right; }
         
-        /* 名稱編輯框樣式 */
         input.name-edit-input {
             width: 100%;
             padding: 2px;
@@ -205,11 +203,11 @@
             margin-top: 2px;
         }
 
-        /* --- 底部佈局 --- */
+        /* --- 底部佈局容器 --- */
         .bottom-layout {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: stretch;
             margin-top: 10px;
         }
 
@@ -228,6 +226,7 @@
             display: flex;
             flex-direction: column;
             align-items: flex-end;
+            justify-content: space-between;
         }
 
         .terms-title {
@@ -243,21 +242,34 @@
         .term-num { min-width: 20px; }
         .term-content { flex-grow: 1; }
 
+        /* 金額統計區塊樣式調整 */
         .total-section {
             text-align: right;
             padding-top: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             border-top: 3px double var(--border-color);
-            font-size: 22px;
+            width: 100%;
+            font-size: 16px; /* 基礎字體 */
+            color: #333;
+        }
+
+        .total-row {
+            margin-bottom: 5px;
+        }
+
+        /* 總計 (含稅) 特別樣式 */
+        .grand-total-row {
+            font-size: 24px;
             font-weight: bold;
             color: var(--primary-color);
-            width: 100%;
+            margin-top: 5px;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
         }
 
         .owner-sign-box {
             text-align: center;
             width: 100%;
-            margin-top: 10px;
         }
 
         .owner-sign-title {
@@ -348,7 +360,6 @@
             input.main-title-input { border: none; color: #000; text-align: center; }
             input.qty-input { display: none; }
             
-            /* 列印時強制隱藏編輯框，顯示文字 */
             .price-display, .name-display { display: inline !important; }
             .price-edit-input, .name-edit-input { display: none !important; }
 
@@ -487,7 +498,9 @@
 
         <div class="right-summary-section">
             <div class="total-section">
-                總計: NT$ <span id="grand-total">0</span>
+                <div class="total-row">工程總價: NT$ <span id="subtotal-display">0</span></div>
+                <div class="total-row">營業稅 (5%): NT$ <span id="tax-display">0</span></div>
+                <div class="total-row grand-total-row">總計 (含稅): NT$ <span id="grand-total-display">0</span></div>
             </div>
             
             <div class="owner-sign-box">
@@ -538,7 +551,6 @@
     ];
 
     const tbody = document.getElementById('quotation-body');
-    const totalSpan = document.getElementById('grand-total');
     const dateDisplay = document.getElementById('date-display');
     const priceToggleBtn = document.getElementById('btn-price-toggle');
     
@@ -587,7 +599,6 @@
         });
     }
 
-    // 切換編輯模式 (同時切換單價與名稱)
     function togglePriceEdit() {
         isPriceEditing = !isPriceEditing;
         
@@ -625,7 +636,6 @@
         calculateRow(index, qtyInput.value);
     }
     
-    // 更新項目名稱
     function updateItemName(index, newName) {
         items[index].name = newName;
         document.getElementById(`name-display-${index}`).innerText = newName;
@@ -719,15 +729,24 @@
         }
     }
 
+    // 更新總價邏輯 (包含稅額)
     function updateTotal() {
-        let grandTotal = 0;
+        let subtotal = 0;
         const subtotalEls = document.querySelectorAll('.subtotal-col');
         
         subtotalEls.forEach(el => {
-            grandTotal += parseInt(el.innerText.replace(/,/g, '').replace('✕', '')) || 0;
+            // 移除逗號與刪除符號後轉數字
+            subtotal += parseInt(el.innerText.replace(/,/g, '').replace('✕', '')) || 0;
         });
 
-        totalSpan.innerText = grandTotal.toLocaleString();
+        // 計算稅金
+        const tax = Math.round(subtotal * 0.05);
+        const grandTotal = subtotal + tax;
+
+        // 更新介面
+        document.getElementById('subtotal-display').innerText = subtotal.toLocaleString();
+        document.getElementById('tax-display').innerText = tax.toLocaleString();
+        document.getElementById('grand-total-display').innerText = grandTotal.toLocaleString();
     }
 
     function resetForm() {
