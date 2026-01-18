@@ -40,7 +40,7 @@
             border: none;
             border-bottom: 2px solid transparent;
             background: transparent;
-            margin-bottom: 30px; /* 增加標題下方留白 */
+            margin-bottom: 30px;
             letter-spacing: 2px;
             outline: none;
             padding: 5px;
@@ -51,21 +51,22 @@
             background-color: #fffef0;
         }
 
-        /* --- 左右分欄佈局 (Header Info) --- */
+        /* --- 左右分欄佈局 (表頭) --- */
         .info-split-container {
             display: flex;
             justify-content: space-between;
             gap: 40px;
-            margin-bottom: 30px; /* 增加區塊間距 */
+            margin-bottom: 30px;
             border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 20px; /* 增加底線距離 */
+            padding-bottom: 20px;
         }
 
         .info-panel {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 15px; /* 【修改】行距由 5px 改為 15px (1.5倍寬鬆感) */
+            /* 【保留】表頭行距維持 1.5 倍 (15px) */
+            gap: 15px; 
         }
 
         .info-row {
@@ -77,7 +78,7 @@
             font-weight: bold;
             min-width: 70px;
             color: #555;
-            font-size: 15px; /* 字體微調 */
+            font-size: 15px;
         }
 
         /* 通用輸入框樣式 */
@@ -85,8 +86,9 @@
             border: none;
             border-bottom: 1px solid #999;
             background: transparent;
-            padding: 6px 2px; /* 【修改】上下內距增加，讓輸入框變高 */
-            font-size: 16px; /* 字體加大 */
+            /* 【恢復】預設內距改回緊湊 (2px) */
+            padding: 2px; 
+            font-size: 15px;
             font-family: inherit;
             flex-grow: 1;
             width: 100%;
@@ -94,11 +96,17 @@
             transition: border-color 0.3s;
         }
         
+        /* 【新增】特別針對表頭區的輸入框加大高度 */
+        .info-panel input.text-input {
+            padding: 6px 2px; /* 表頭輸入框加高 */
+            font-size: 16px;  /* 表頭字體加大 */
+        }
+        
         textarea.text-input {
             resize: none;
             overflow: hidden;
             vertical-align: top;
-            min-height: 30px; /* 【修改】預設高度增加 */
+            min-height: 24px;
             line-height: 1.5;
         }
 
@@ -113,20 +121,21 @@
         
         .date-display {
             text-align: right;
-            margin-top: 10px; /* 增加日期上方間距 */
+            margin-top: 10px;
             font-size: 15px;
             color: #555;
         }
 
-        /* --- 表格樣式 (保持緊湊或依需求調整) --- */
+        /* --- 表格樣式 --- */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         th, td {
-            padding: 8px 6px; /* 表格維持適中高度，若需變高可改為 10px 8px */
+            /* 【恢復】表格內距改回緊湊 (6px 4px) */
+            padding: 6px 4px; 
             text-align: left;
             border-bottom: 1px solid var(--border-color);
             font-size: 15px;
@@ -166,7 +175,7 @@
         input.qty-input, input.price-edit-input {
             width: 90%;
             min-width: 40px;
-            padding: 4px 2px; /* 稍微增加輸入框高度 */
+            padding: 2px;
             border: 1px solid #ccc;
             border-radius: 4px;
             text-align: center;
@@ -184,7 +193,7 @@
         
         input.name-edit-input {
             width: 100%;
-            padding: 4px 2px;
+            padding: 2px;
             border: 1px solid #2980b9;
             border-radius: 4px;
             font-size: 15px;
@@ -208,15 +217,15 @@
             display: flex;
             justify-content: space-between;
             align-items: stretch;
-            margin-top: 20px; /* 增加上方間距 */
+            margin-top: 10px;
         }
 
         .terms-section {
             width: 55%;
             border: 1px solid #000;
-            padding: 20px; /* 增加內距 */
-            font-size: 15px; /* 字體加大 */
-            line-height: 1.8; /* 行高加大 */
+            padding: 15px;
+            font-size: 14px;
+            line-height: 1.6;
             text-align: left;
             box-sizing: border-box;
         }
@@ -231,16 +240,16 @@
 
         .terms-title {
             font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 15px; /* 標題與內容距離加大 */
+            font-size: 15px;
+            margin-bottom: 8px;
             display: inline-block;
             background: #eee;
-            padding: 5px 10px;
+            padding: 3px 8px;
         }
 
-        /* 【修改】備註條款的行距加大 */
-        .term-item { display: flex; margin-bottom: 12px; } 
-        .term-num { min-width: 25px; }
+        /* 【恢復】備註條款行距改回緊湊 (5px) */
+        .term-item { display: flex; margin-bottom: 5px; }
+        .term-num { min-width: 20px; }
         .term-content { flex-grow: 1; }
 
         .total-section {
@@ -254,16 +263,16 @@
         }
 
         .total-row {
-            margin-bottom: 8px; /* 金額行距加大 */
+            margin-bottom: 5px;
         }
 
         .grand-total-row {
-            font-size: 26px; /* 總金額字體加大 */
+            font-size: 24px;
             font-weight: bold;
             color: var(--primary-color);
-            margin-top: 10px;
+            margin-top: 5px;
             border-top: 1px solid #eee;
-            padding-top: 10px;
+            padding-top: 5px;
         }
 
         .owner-sign-box {
@@ -272,9 +281,9 @@
         }
 
         .owner-sign-title {
-            font-size: 18px; /* 簽名字體加大 */
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 60px; /* 簽名空間加大 */
+            margin-bottom: 40px;
             text-align: center;
         }
 
@@ -352,8 +361,13 @@
 
             input.text-input, textarea.text-input { 
                 border-bottom: 1px solid #000; 
-                padding: 4px 2px; /* 列印時保持高度 */
+                padding: 2px;
                 overflow: visible; 
+            }
+            
+            /* 列印時特別設定表頭高度 */
+            .info-panel input.text-input {
+                padding: 6px 2px;
             }
             
             input.main-title-input { border: none; color: #000; text-align: center; }
@@ -370,10 +384,10 @@
                 background-color: #eee !important;
                 color: black !important;
                 -webkit-print-color-adjust: exact;
-                padding: 6px 8px;
+                padding: 4px 8px;
             }
             td {
-                padding: 6px 8px;
+                padding: 4px 8px;
             }
             
             .bottom-layout {
