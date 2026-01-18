@@ -143,13 +143,13 @@
 
         tr:hover { background-color: #f9f9f9; }
 
-        /* 拖曳手柄樣式優化 */
+        /* 拖曳手柄樣式 */
         .drag-handle {
-            cursor: move; /* 十字游標 */
-            cursor: grab; /* 手掌游標 */
+            cursor: move;
+            cursor: grab;
             color: #888;
             font-weight: bold;
-            user-select: none; /* 禁止選取文字 */
+            user-select: none;
             transition: color 0.2s;
         }
         .drag-handle:hover {
@@ -157,18 +157,10 @@
             background-color: #f0f0f0;
         }
         .drag-handle:active {
-            cursor: grabbing; /* 抓取中游標 */
+            cursor: grabbing;
         }
-        
-        /* 拖曳中的樣式 */
-        .sortable-ghost {
-            opacity: 0.4;
-            background-color: #e3f2fd;
-        }
-        .sortable-drag {
-            background-color: white;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
+        .sortable-ghost { opacity: 0.4; background-color: #e3f2fd; }
+        .sortable-drag { background-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
 
         /* 輸入框 */
         input.qty-input, input.price-edit-input {
@@ -182,11 +174,23 @@
             box-sizing: border-box;
         }
         
-        input.price-edit-input {
+        /* 預設隱藏的編輯框 (價格與名稱) */
+        input.price-edit-input, input.name-edit-input {
             display: none; 
-            text-align: right;
             border-color: #2980b9; 
             background-color: #ebf5fb;
+        }
+        
+        input.price-edit-input { text-align: right; }
+        
+        /* 名稱編輯框樣式 */
+        input.name-edit-input {
+            width: 100%;
+            padding: 2px;
+            border: 1px solid #2980b9;
+            border-radius: 4px;
+            font-size: 15px;
+            box-sizing: border-box;
         }
 
         .price-col, .subtotal-col {
@@ -316,7 +320,7 @@
 
         .print-only { display: none; }
 
-        /* --- 自動排序邏輯 (CSS Counter) --- */
+        /* --- 自動排序邏輯 --- */
         tbody {
             counter-reset: row-num;
         }
@@ -344,8 +348,9 @@
             input.main-title-input { border: none; color: #000; text-align: center; }
             input.qty-input { display: none; }
             
-            .price-display { display: inline !important; }
-            .price-edit-input { display: none !important; }
+            /* 列印時強制隱藏編輯框，顯示文字 */
+            .price-display, .name-display { display: inline !important; }
+            .price-edit-input, .name-edit-input { display: none !important; }
 
             .print-only { display: inline; }
             
@@ -378,7 +383,6 @@
             .custom-row input.text-input-left { text-align: left; }
             .custom-row input.text-input-right { text-align: right; }
             
-            /* 列印時移除拖曳手柄游標 */
             .drag-handle { cursor: default; }
         }
     </style>
@@ -446,7 +450,7 @@
     
     <div style="text-align: left; margin-bottom: 20px;" class="actions">
         <button onclick="addCustomRow()" class="btn-add">+ 新增自訂項目</button>
-        <button onclick="togglePriceEdit()" id="btn-price-toggle" class="btn-edit-price">🔓 修改預設單價</button>
+        <button onclick="togglePriceEdit()" id="btn-price-toggle" class="btn-edit-price">🔓 修改單價,工程項目</button>
     </div>
 
     <div class="bottom-layout">
@@ -543,14 +547,12 @@
     const today = new Date();
     dateDisplay.innerText = `報價日期: ${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
 
-    // --- SortableJS 初始化 (實現超順暢拖曳) ---
-    // 參考文件: https://github.com/SortableJS/Sortable
+    // --- SortableJS 初始化 ---
     new Sortable(tbody, {
-        handle: '.drag-handle', // 只能透過第一欄拖曳
-        animation: 150,         // 動畫毫秒數
-        ghostClass: 'sortable-ghost', // 拖曳時原位置的樣式
-        dragClass: 'sortable-drag',   // 拖曳中元素的樣式
-        // 當拖曳結束後，CSS Counter 會自動處理項次，無需額外 JS 邏輯
+        handle: '.drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
     });
 
     function initTable() {
@@ -566,7 +568,8 @@
             tr.innerHTML = `
                 <td class="center-text drag-handle" title="按住此處拖曳排序"><span class="index-cell"></span></td>
                 <td>
-                    ${item.name}
+                    <span class="name-display" id="name-display-${index}">${item.name}</span>
+                    <input type="text" class="name-edit-input" id="name-input-${index}" value="${item.name}" oninput="updateItemName(${index}, this.value)">
                     ${minRuleText}
                 </td>
                 <td class="price-col right-text">
@@ -584,22 +587,33 @@
         });
     }
 
+    // 切換編輯模式 (同時切換單價與名稱)
     function togglePriceEdit() {
         isPriceEditing = !isPriceEditing;
         
-        const displays = document.querySelectorAll('.price-display');
-        const inputs = document.querySelectorAll('.price-edit-input');
+        const priceDisplays = document.querySelectorAll('.price-display');
+        const priceInputs = document.querySelectorAll('.price-edit-input');
+        const nameDisplays = document.querySelectorAll('.name-display');
+        const nameInputs = document.querySelectorAll('.name-edit-input');
         
         if (isPriceEditing) {
-            priceToggleBtn.innerText = "🔒 鎖定單價 (完成)";
+            priceToggleBtn.innerText = "🔒 鎖定編輯 (完成)";
             priceToggleBtn.classList.add('active');
-            displays.forEach(el => el.style.display = 'none');
-            inputs.forEach(el => el.style.display = 'inline-block');
+            
+            priceDisplays.forEach(el => el.style.display = 'none');
+            priceInputs.forEach(el => el.style.display = 'inline-block');
+            
+            nameDisplays.forEach(el => el.style.display = 'none');
+            nameInputs.forEach(el => el.style.display = 'inline-block');
         } else {
-            priceToggleBtn.innerText = "🔓 修改預設單價";
+            priceToggleBtn.innerText = "🔓 修改單價,工程項目";
             priceToggleBtn.classList.remove('active');
-            displays.forEach(el => el.style.display = 'inline');
-            inputs.forEach(el => el.style.display = 'none');
+            
+            priceDisplays.forEach(el => el.style.display = 'inline');
+            priceInputs.forEach(el => el.style.display = 'none');
+            
+            nameDisplays.forEach(el => el.style.display = 'inline');
+            nameInputs.forEach(el => el.style.display = 'none');
         }
     }
 
@@ -609,6 +623,12 @@
         document.getElementById(`price-display-${index}`).innerText = price.toLocaleString();
         const qtyInput = document.querySelectorAll('.qty-input')[index];
         calculateRow(index, qtyInput.value);
+    }
+    
+    // 更新項目名稱
+    function updateItemName(index, newName) {
+        items[index].name = newName;
+        document.getElementById(`name-display-${index}`).innerText = newName;
     }
 
     function calculateRow(index, value) {
@@ -734,7 +754,6 @@
         }
     }
 
-    // 自動調整 Textarea 高度
     document.addEventListener('input', function (event) {
         if (event.target.classList.contains('auto-resize')) {
             const textarea = event.target;
