@@ -79,7 +79,7 @@
             font-size: 14px;
         }
 
-        /* 通用輸入框樣式 (包含 input 和 textarea) */
+        /* 通用輸入框樣式 */
         input.text-input, textarea.text-input {
             border: none;
             border-bottom: 1px solid #999;
@@ -93,12 +93,11 @@
             transition: border-color 0.3s;
         }
         
-        /* textarea 專用修正 */
         textarea.text-input {
-            resize: none; /* 隱藏右下角拉動圖示 */
-            overflow: hidden; /* 隱藏捲軸 */
+            resize: none;
+            overflow: hidden;
             vertical-align: top;
-            min-height: 24px; /* 預設高度 */
+            min-height: 24px;
             line-height: 1.5;
         }
 
@@ -126,7 +125,7 @@
         }
 
         th, td {
-            padding: 6px 4px; /* 稍微減少左右內距以容納更多內容 */
+            padding: 6px 4px;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
             font-size: 15px;
@@ -143,7 +142,21 @@
 
         tr:hover { background-color: #f9f9f9; }
 
-        /* 修改: 將固定寬度改為百分比，以適應變窄的欄位 */
+        /* 拖曳相關樣式 */
+        .drag-handle {
+            cursor: move; /* 顯示移動游標 */
+            color: #888;
+            font-weight: bold;
+            user-select: none;
+        }
+        
+        tr.dragging {
+            opacity: 0.5;
+            background-color: #e3f2fd !important;
+            border: 2px dashed #2196f3;
+        }
+
+        /* 輸入框 */
         input.qty-input, input.price-edit-input {
             width: 90%;
             min-width: 40px;
@@ -152,7 +165,7 @@
             border-radius: 4px;
             text-align: center;
             font-size: 15px;
-            box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
+            box-sizing: border-box;
         }
         
         input.price-edit-input {
@@ -293,6 +306,7 @@
         tbody {
             counter-reset: row-num;
         }
+        /* 列印時只計算非隱藏行，平常顯示時全部計算 */
         tbody tr:not(.print-hidden) {
             counter-increment: row-num;
         }
@@ -351,6 +365,9 @@
             }
             .custom-row input.text-input-left { text-align: left; }
             .custom-row input.text-input-right { text-align: right; }
+            
+            /* 列印時移除拖曳手柄游標樣式 */
+            .drag-handle { cursor: default; }
         }
     </style>
 </head>
@@ -514,18 +531,74 @@
     const today = new Date();
     dateDisplay.innerText = `報價日期: ${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
 
+    // --- 拖曳排序相關邏輯 ---
+    // 取得拖曳後應該插入的位置
+    function getDragAfterElement(container, y) {
+        // 只選取沒有 .dragging 樣式的行
+        const draggableElements = [...container.querySelectorAll('tr:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            // 計算滑鼠位置與元素中心的距離
+            const offset = y - box.top - box.height / 2;
+            // 如果 offset < 0 (滑鼠在元素上方) 且距離最近
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // 為 Row 加入拖曳事件
+    function addDragEvents(row) {
+        row.setAttribute('draggable', 'true'); // 設為可拖曳
+
+        row.addEventListener('dragstart', (e) => {
+            // 只有點擊第一欄 (項次) 時才允許拖曳，避免影響輸入框操作
+            const targetCell = e.target.closest('td');
+            if (!targetCell || targetCell.cellIndex !== 0) {
+                e.preventDefault();
+                return;
+            }
+            row.classList.add('dragging');
+        });
+
+        row.addEventListener('dragend', () => {
+            row.classList.remove('dragging');
+        });
+    }
+
+    // 監聽容器的拖曳事件 (Drop Logic)
+    tbody.addEventListener('dragover', (e) => {
+        e.preventDefault(); // 允許 Drop
+        const afterElement = getDragAfterElement(tbody, e.clientY);
+        const draggable = document.querySelector('.dragging');
+        if (!draggable) return;
+
+        if (afterElement == null) {
+            tbody.appendChild(draggable);
+        } else {
+            tbody.insertBefore(draggable, afterElement);
+        }
+    });
+    // --- 拖曳邏輯結束 ---
+
     function initTable() {
         items.forEach((item, index) => {
             const tr = document.createElement('tr');
             tr.className = 'empty-row'; 
             
+            // 加入拖曳功能
+            addDragEvents(tr);
+
             let minRuleText = "";
             if (item.min > 1) {
                 minRuleText = `<span class="min-rule">(不滿${item.min}${item.unit}以${item.min}${item.unit}計)</span>`;
             }
 
             tr.innerHTML = `
-                <td class="center-text"><span class="index-cell"></span></td>
+                <td class="center-text drag-handle" title="按住此處拖曳排序"><span class="index-cell"></span></td>
                 <td>
                     ${item.name}
                     ${minRuleText}
@@ -613,8 +686,11 @@
         const tr = document.createElement('tr');
         tr.className = 'custom-row'; 
         
+        // 自訂列也要加入拖曳功能
+        addDragEvents(tr);
+
         tr.innerHTML = `
-            <td class="center-text"><span class="index-cell"></span></td>
+            <td class="center-text drag-handle" title="按住此處拖曳排序"><span class="index-cell"></span></td>
             <td>
                 <input type="text" class="text-input text-input-left" placeholder="輸入工作項目名稱">
             </td>
@@ -680,14 +756,12 @@
             });
             const textInputs = document.querySelectorAll('.text-input');
             textInputs.forEach(input => {
-                // 不清除地址與Textarea以外的文字框 (Textarea在這邊被視為 .text-input)
                 if (input.value !== "彰化市金馬路 2 段 519 號" && !input.classList.contains('auto-resize')) {
                    input.value = '';
                 }
-                // 特別處理 Textarea
                 if (input.tagName === 'TEXTAREA') {
                     input.value = '';
-                    input.style.height = 'auto'; // 重置高度
+                    input.style.height = 'auto';
                 }
             });
             const customRows = document.querySelectorAll('.custom-row');
