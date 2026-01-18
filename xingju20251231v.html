@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>興居室內裝修 - 工程估價系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -50,7 +51,7 @@
             background-color: #fffef0;
         }
 
-        /* --- 左右分欄佈局 (Header Info) --- */
+        /* --- 左右分欄佈局 --- */
         .info-split-container {
             display: flex;
             justify-content: space-between;
@@ -142,18 +143,31 @@
 
         tr:hover { background-color: #f9f9f9; }
 
-        /* 拖曳相關樣式 */
+        /* 拖曳手柄樣式優化 */
         .drag-handle {
-            cursor: move; /* 顯示移動游標 */
+            cursor: move; /* 十字游標 */
+            cursor: grab; /* 手掌游標 */
             color: #888;
             font-weight: bold;
-            user-select: none;
+            user-select: none; /* 禁止選取文字 */
+            transition: color 0.2s;
+        }
+        .drag-handle:hover {
+            color: var(--accent-color);
+            background-color: #f0f0f0;
+        }
+        .drag-handle:active {
+            cursor: grabbing; /* 抓取中游標 */
         }
         
-        tr.dragging {
-            opacity: 0.5;
-            background-color: #e3f2fd !important;
-            border: 2px dashed #2196f3;
+        /* 拖曳中的樣式 */
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #e3f2fd;
+        }
+        .sortable-drag {
+            background-color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
         /* 輸入框 */
@@ -187,7 +201,7 @@
             margin-top: 2px;
         }
 
-        /* --- 底部佈局容器 --- */
+        /* --- 底部佈局 --- */
         .bottom-layout {
             display: flex;
             justify-content: space-between;
@@ -302,11 +316,10 @@
 
         .print-only { display: none; }
 
-        /* --- 自動排序與列印邏輯 --- */
+        /* --- 自動排序邏輯 (CSS Counter) --- */
         tbody {
             counter-reset: row-num;
         }
-        /* 列印時只計算非隱藏行，平常顯示時全部計算 */
         tbody tr:not(.print-hidden) {
             counter-increment: row-num;
         }
@@ -322,7 +335,6 @@
             
             .actions, .delete-btn { display: none !important; }
 
-            /* 文字框列印設定 */
             input.text-input, textarea.text-input { 
                 border-bottom: 1px solid #000; 
                 padding: 0 2px;
@@ -366,7 +378,7 @@
             .custom-row input.text-input-left { text-align: left; }
             .custom-row input.text-input-right { text-align: right; }
             
-            /* 列印時移除拖曳手柄游標樣式 */
+            /* 列印時移除拖曳手柄游標 */
             .drag-handle { cursor: default; }
         }
     </style>
@@ -531,67 +543,21 @@
     const today = new Date();
     dateDisplay.innerText = `報價日期: ${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
 
-    // --- 拖曳排序相關邏輯 ---
-    // 取得拖曳後應該插入的位置
-    function getDragAfterElement(container, y) {
-        // 只選取沒有 .dragging 樣式的行
-        const draggableElements = [...container.querySelectorAll('tr:not(.dragging)')];
-
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            // 計算滑鼠位置與元素中心的距離
-            const offset = y - box.top - box.height / 2;
-            // 如果 offset < 0 (滑鼠在元素上方) 且距離最近
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    // 為 Row 加入拖曳事件
-    function addDragEvents(row) {
-        row.setAttribute('draggable', 'true'); // 設為可拖曳
-
-        row.addEventListener('dragstart', (e) => {
-            // 只有點擊第一欄 (項次) 時才允許拖曳，避免影響輸入框操作
-            const targetCell = e.target.closest('td');
-            if (!targetCell || targetCell.cellIndex !== 0) {
-                e.preventDefault();
-                return;
-            }
-            row.classList.add('dragging');
-        });
-
-        row.addEventListener('dragend', () => {
-            row.classList.remove('dragging');
-        });
-    }
-
-    // 監聽容器的拖曳事件 (Drop Logic)
-    tbody.addEventListener('dragover', (e) => {
-        e.preventDefault(); // 允許 Drop
-        const afterElement = getDragAfterElement(tbody, e.clientY);
-        const draggable = document.querySelector('.dragging');
-        if (!draggable) return;
-
-        if (afterElement == null) {
-            tbody.appendChild(draggable);
-        } else {
-            tbody.insertBefore(draggable, afterElement);
-        }
+    // --- SortableJS 初始化 (實現超順暢拖曳) ---
+    // 參考文件: https://github.com/SortableJS/Sortable
+    new Sortable(tbody, {
+        handle: '.drag-handle', // 只能透過第一欄拖曳
+        animation: 150,         // 動畫毫秒數
+        ghostClass: 'sortable-ghost', // 拖曳時原位置的樣式
+        dragClass: 'sortable-drag',   // 拖曳中元素的樣式
+        // 當拖曳結束後，CSS Counter 會自動處理項次，無需額外 JS 邏輯
     });
-    // --- 拖曳邏輯結束 ---
 
     function initTable() {
         items.forEach((item, index) => {
             const tr = document.createElement('tr');
             tr.className = 'empty-row'; 
             
-            // 加入拖曳功能
-            addDragEvents(tr);
-
             let minRuleText = "";
             if (item.min > 1) {
                 minRuleText = `<span class="min-rule">(不滿${item.min}${item.unit}以${item.min}${item.unit}計)</span>`;
@@ -686,9 +652,6 @@
         const tr = document.createElement('tr');
         tr.className = 'custom-row'; 
         
-        // 自訂列也要加入拖曳功能
-        addDragEvents(tr);
-
         tr.innerHTML = `
             <td class="center-text drag-handle" title="按住此處拖曳排序"><span class="index-cell"></span></td>
             <td>
