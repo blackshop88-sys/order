@@ -100,14 +100,12 @@
             font-size: 16px;
         }
         
-        /* textarea 專用樣式 */
         textarea.text-input {
             resize: none;
             overflow: hidden;
-            vertical-align: middle; /* 垂直置中對齊表格 */
-            min-height: 24px;
+            vertical-align: top;
+            min-height: 24px; /* 預設高度縮小一點，避免空行太多 */
             line-height: 1.5;
-            padding-top: 4px; /* 稍微調整文字位置 */
         }
 
         input.text-input:focus, textarea.text-input:focus {
@@ -138,7 +136,17 @@
             text-align: left;
             border-bottom: 1px solid var(--border-color);
             font-size: 15px;
-            vertical-align: middle; /* 讓所有內容垂直置中 */
+            vertical-align: top; /* 表格內容靠上對齊，避免多行文字時跑版 */
+        }
+
+        /* 修正表格內垂直置中問題 */
+        td.center-text, td.right-text {
+            vertical-align: middle;
+        }
+        /* 工程項目欄位靠上，以適應多行 */
+        td:nth-child(2) {
+            vertical-align: top;
+            padding-top: 8px; /* 微調文字位置 */
         }
 
         th {
@@ -160,6 +168,7 @@
             font-weight: bold;
             user-select: none;
             transition: color 0.2s;
+            padding-top: 8px; /* 對齊調整 */
         }
         .drag-handle:hover {
             color: var(--accent-color);
@@ -358,7 +367,7 @@
             
             .actions, .delete-btn { display: none !important; }
 
-            /* 【重點修改】列印時，單行輸入框強制不換行 (nowrap) */
+            /* 單行輸入框強制不換行 */
             input.text-input { 
                 border-bottom: 1px solid #000; 
                 padding: 4px 2px;
@@ -366,12 +375,20 @@
                 overflow: hidden;    
             }
             
-            /* 【重點修改】備註與自訂項目的 textarea 允許換行 */
+            /* 【修復】Textarea 在列印時顯示完整內容，不截斷 */
             textarea.text-input { 
                 border-bottom: 1px solid #000; 
-                padding: 2px;
-                overflow: visible;   
+                padding: 0; /* 減少列印時的內距 */
+                overflow: visible !important;   
+                height: auto !important; /* 強制高度自動適應 */
                 white-space: pre-wrap; /* 允許換行 */
+                display: block; /* 確保佔據空間 */
+            }
+            
+            /* 【修復】自訂項目內的 textarea 樣式 */
+            .custom-row textarea.text-input {
+                border: none; /* 表格內自訂項目不要底線 */
+                border-bottom: 1px solid transparent; 
             }
             
             input.main-title-input { border: none; color: #000; text-align: center; }
@@ -408,16 +425,7 @@
                 width: 100%;
                 padding: 0;
             }
-            
-            /* 自訂項目的 textarea 樣式 */
-            .custom-row textarea.text-input {
-                border: none;
-                /* 自訂項目通常不需要底線，或者依需求保留 */
-                border-bottom: 1px solid transparent; 
-                width: 100%;
-                text-align: left;
-            }
-            
+            .custom-row input.text-input-left { text-align: left; }
             .custom-row input.text-input-right { text-align: right; }
             
             .drag-handle { cursor: default; }
