@@ -106,7 +106,7 @@
             vertical-align: top;
             min-height: 24px;
             line-height: 1.5;
-            display: block; /* 確保佔滿容器 */
+            display: block;
             width: 100%;
         }
 
@@ -115,24 +115,25 @@
             background-color: #fffef0;
         }
 
-        /* --- 列印專用替身 (預設隱藏) --- */
+        /* --- 關鍵：列印專用替身 (Print Div) --- */
+        /* 包裹容器，確保位置正確 */
+        .print-wrap {
+            width: 100%;
+            position: relative;
+        }
+        
+        /* 替身 Div：預設隱藏，只有列印時出現 */
         .print-div {
-            display: none; /* 螢幕上不顯示 */
-            white-space: pre-wrap; /* 保留換行 */
-            word-wrap: break-word; /* 自動換行 */
-            border-bottom: 1px solid #000;
-            min-height: 24px;
+            display: none; 
+            white-space: pre-wrap; /* 支援換行 */
+            word-wrap: break-word; /* 長單字換行 */
+            overflow-wrap: break-word;
             line-height: 1.5;
             font-size: 15px;
             font-family: inherit;
-            padding-top: 2px;
-        }
-        
-        /* 包裹 Textarea 和 PrintDiv 的容器 */
-        .print-wrap {
-            flex-grow: 1;
-            width: 100%;
-            position: relative;
+            color: #000;
+            text-align: left;
+            min-height: 24px;
         }
 
         .right-align-input input.text-input {
@@ -151,6 +152,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
+            table-layout: fixed; /* 固定佈局，避免被內容撐爆 */
         }
 
         th, td {
@@ -164,7 +166,7 @@
         td.center-text, td.right-text {
             vertical-align: middle;
         }
-        /* 針對工程項目欄位 */
+        /* 工程項目欄位 */
         td:nth-child(2) {
             vertical-align: top;
             padding-top: 8px;
@@ -279,7 +281,7 @@
 
         .term-item { display: flex; margin-bottom: 5px; }
         .term-num { min-width: 20px; }
-        .term-content { flex-grow: 1; display: flex; } /* Flex 讓內容撐開 */
+        .term-content { flex-grow: 1; display: flex; }
 
         .total-section {
             text-align: right;
@@ -396,15 +398,16 @@
                 overflow: hidden;    
             }
             
-            /* 【終極解法】列印時隱藏 Textarea，顯示 Div */
+            /* 【核心修復】列印時徹底隱藏 Textarea */
             textarea.text-input { display: none !important; }
+            
+            /* 【核心修復】列印時顯示替身 Div，確保文字自動換行且不截斷 */
             .print-div { 
                 display: block !important; 
-                border-bottom: 1px solid #000; /* 確保底線存在 */
-                width: 100%;
+                border-bottom: 1px solid #000; /* 備註欄保留底線 */
             }
             
-            /* 自訂項目的 Div 不要有底線 (因為在表格內) */
+            /* 自訂項目的 Div 不要有底線 */
             .custom-row .print-div {
                 border-bottom: none;
             }
@@ -524,7 +527,7 @@
                 <div class="term-num">1.</div>
                 <div class="term-content">
                     <div class="print-wrap">
-                        <textarea class="text-input auto-resize" rows="1" placeholder="請輸入收款方式 (文字過長會自動換行)"></textarea>
+                        <textarea class="text-input auto-resize" rows="1" placeholder="請輸入收款方式 (文字過長會自動換行)" oninput="syncText(this)"></textarea>
                         <div class="print-div"></div>
                     </div>
                 </div>
@@ -750,7 +753,7 @@
             <td class="center-text drag-handle" title="按住此處拖曳排序"><span class="index-cell"></span></td>
             <td>
                 <div class="print-wrap">
-                    <textarea class="text-input text-input-left auto-resize" rows="1" placeholder="輸入工作項目名稱 (自動換行)"></textarea>
+                    <textarea class="text-input text-input-left auto-resize" rows="1" placeholder="輸入工作項目名稱 (自動換行)" oninput="syncText(this)"></textarea>
                     <div class="print-div"></div>
                 </div>
             </td>
@@ -828,7 +831,7 @@
                 if (input.tagName === 'TEXTAREA') {
                     input.value = '';
                     input.style.height = 'auto';
-                    // 同步清除 print-div 內容
+                    // 清除 print-div
                     const printDiv = input.nextElementSibling;
                     if(printDiv && printDiv.classList.contains('print-div')) {
                         printDiv.textContent = '';
@@ -842,20 +845,23 @@
         }
     }
 
-    // 【同步文字】當 Textarea 輸入時，同步更新到隱藏的 Div
+    // 【重要】同步文字到替身 Div 的函式
+    function syncText(textarea) {
+        // 1. 自動調整 Textarea 高度 (螢幕顯示用)
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+        
+        // 2. 同步內容到 Print Div (列印用)
+        const printDiv = textarea.nextElementSibling;
+        if (printDiv && printDiv.classList.contains('print-div')) {
+            printDiv.textContent = textarea.value;
+        }
+    }
+
+    // 針對非動態產生的 Textarea (如備註欄) 也要能自動長高與同步
     document.addEventListener('input', function (event) {
         if (event.target.classList.contains('auto-resize')) {
-            const textarea = event.target;
-            
-            // 1. 自動調整 Textarea 高度 (螢幕顯示用)
-            textarea.style.height = 'auto';
-            textarea.style.height = textarea.scrollHeight + 'px';
-            
-            // 2. 同步內容到 Print Div (列印用)
-            const printDiv = textarea.nextElementSibling;
-            if (printDiv && printDiv.classList.contains('print-div')) {
-                printDiv.textContent = textarea.value;
-            }
+            syncText(event.target);
         }
     }, false);
 
