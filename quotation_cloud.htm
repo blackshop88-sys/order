@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v21 (新增預計工期)</title>
+    <title>興居室內裝修 - 報價系統 v23 (油漆項目調整)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -84,7 +84,7 @@
 
     <div class="no-print fixed top-0 left-0 right-0 bg-slate-800 text-white p-3 shadow-lg z-40 flex flex-wrap justify-between items-center gap-2">
         <div class="flex items-center gap-2">
-            <div class="font-bold text-lg"><i class="fas fa-hard-hat mr-2"></i>興居裝修 v21</div>
+            <div class="font-bold text-lg"><i class="fas fa-hard-hat mr-2"></i>興居裝修 v23</div>
             <span v-if="statusMsg" class="text-xs bg-yellow-500 text-black px-2 py-1 rounded">{{ statusMsg }}</span>
         </div>
 
@@ -302,7 +302,7 @@
         { name: '批AB膠透批白土 (不滿3坪以3坪計)', unit: '坪', price: 1800, qty: 0 },
         { name: '窗簾盒批AB膠透批白土 (不滿8尺以8尺計)', unit: '尺', price: 300, qty: 0 },
         { name: '冷氣盒批AB膠透批白土 (不滿2個以2個計)', unit: '個', price: 2300, qty: 0 },
-        { name: '壁面水泥漆刷三次(不含批孔) (不滿6坪以6坪計)', unit: '坪', price: 800, qty: 0 },
+        { name: '壁面水泥漆刷二次(不含批孔) (不滿10坪以10坪計)', unit: '坪', price: 450, qty: 0 }, // [v23 Updated]
         { name: '木作6mm矽酸鈣板單面隔間 (不滿2坪以2坪計)', unit: '坪', price: 4200, qty: 0 },
         { name: '木作6mm矽酸鈣板雙面隔間 (不滿2坪以2坪計)', unit: '坪', price: 5300, qty: 0 },
         { name: '無裝潢室內電燈插座抽換線 (包含國際星光面板)', unit: '個', price: 1000, qty: 0 },
@@ -339,7 +339,7 @@
                     clientName: '',
                     clientPhone: '',
                     projectAddress: '',
-                    projectDuration: '', // 新增欄位
+                    projectDuration: '',
                     quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
                     date: new Date().toISOString().slice(0,10),
                     validity: '15天',
@@ -468,7 +468,7 @@
                     this.form = {
                         id: Date.now(),
                         clientName: '', clientPhone: '', projectAddress: '',
-                        projectDuration: '', // reset new field
+                        projectDuration: '',
                         quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
                         date: new Date().toISOString().slice(0,10), validity: '15天', taxRate: 0,
                         notes: DEFAULT_NOTES,
