@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v20 (欄位交換版)</title>
+    <title>興居室內裝修 - 報價系統 v21 (新增預計工期)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -37,7 +37,7 @@
 
             input, textarea, select { border: none !important; appearance: none; padding: 0; background: transparent; resize: none; }
             ::placeholder { color: transparent; }
-            /* v20修改: company-input 在列印時保持右對齊和底線，用於header的單據資料 */
+            .company-input { text-align: right; width: auto; display: inline-block; }
             .header-input { text-align: right; width: auto; display: inline-block; border-bottom: 1px dotted #ccc !important; }
             
             /* 列印時的切換邏輯 */
@@ -65,7 +65,6 @@
             display: flex;
             flex-direction: column;
         }
-        /* v20新增: header專用輸入框樣式 */
         .header-input { text-align: right; background: transparent; border-bottom: 1px dotted #a0aec0; outline: none; }
         .header-input:focus { border-bottom-color: #2563eb; }
     </style>
@@ -85,7 +84,7 @@
 
     <div class="no-print fixed top-0 left-0 right-0 bg-slate-800 text-white p-3 shadow-lg z-40 flex flex-wrap justify-between items-center gap-2">
         <div class="flex items-center gap-2">
-            <div class="font-bold text-lg"><i class="fas fa-hard-hat mr-2"></i>興居裝修 v20</div>
+            <div class="font-bold text-lg"><i class="fas fa-hard-hat mr-2"></i>興居裝修 v21</div>
             <span v-if="statusMsg" class="text-xs bg-yellow-500 text-black px-2 py-1 rounded">{{ statusMsg }}</span>
         </div>
 
@@ -152,6 +151,7 @@
                     <div class="flex items-center"><label class="w-20 text-sm text-gray-600">客戶名稱：</label><input type="text" v-model="form.clientName" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm"></div>
                     <div class="flex items-center"><label class="w-20 text-sm text-gray-600">聯絡電話：</label><input type="text" v-model="form.clientPhone" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm"></div>
                     <div class="flex items-center"><label class="w-20 text-sm text-gray-600">工程地址：</label><input type="text" v-model="form.projectAddress" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm"></div>
+                    <div class="flex items-center"><label class="w-20 text-sm text-gray-600">預計工期：</label><input type="text" v-model="form.projectDuration" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm" placeholder="例如：30個工作天"></div>
                 </div>
             </div>
             
@@ -339,6 +339,7 @@
                     clientName: '',
                     clientPhone: '',
                     projectAddress: '',
+                    projectDuration: '', // 新增欄位
                     quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
                     date: new Date().toISOString().slice(0,10),
                     validity: '15天',
@@ -467,6 +468,7 @@
                     this.form = {
                         id: Date.now(),
                         clientName: '', clientPhone: '', projectAddress: '',
+                        projectDuration: '', // reset new field
                         quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
                         date: new Date().toISOString().slice(0,10), validity: '15天', taxRate: 0,
                         notes: DEFAULT_NOTES,
