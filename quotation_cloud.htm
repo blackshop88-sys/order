@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v25 (更新衛浴型號)</title>
+    <title>興居室內裝修 - 報價系統 v26 (新增通風門)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -84,7 +84,7 @@
 
     <div class="no-print fixed top-0 left-0 right-0 bg-slate-800 text-white p-3 shadow-lg z-40 flex flex-wrap justify-between items-center gap-2">
         <div class="flex items-center gap-2">
-            <div class="font-bold text-lg"><i class="fas fa-hard-hat mr-2"></i>興居裝修 v25</div>
+            <div class="font-bold text-lg"><i class="fas fa-hard-hat mr-2"></i>興居裝修 v26</div>
             <span v-if="statusMsg" class="text-xs bg-yellow-500 text-black px-2 py-1 rounded">{{ statusMsg }}</span>
         </div>
 
@@ -308,7 +308,8 @@
         { name: '無裝潢室內電燈插座抽換線2.0 (包含國際牌星光大面板)', unit: '坪', price: 2000, qty: 0 },
         { name: '浴室範圍配給排水管一套 舊改新', unit: '間', price: 25000, qty: 0 },
         { name: '浴室衛浴設備安裝', unit: '間', price: 5500, qty: 0 },
-        { name: 'HCG和成牌基本款衛浴設備(馬桶CS130EJ+臉盆LF367SR+臉盆龍頭LF4330NE+沐浴龍頭BF3731+鏡子BA727)', unit: '套', price: 15000, qty: 0 } // [v25 Updated]
+        { name: 'HCG和成牌基本款衛浴設備(馬桶CS130EJ+臉盆LF367SR+臉盆龍頭LF4330NE+沐浴龍頭BF3731+鏡子BA727)', unit: '套', price: 15000, qty: 0 },
+        { name: '鋁三合一通風門框+門扇', unit: '樘', price: 25000, qty: 0 } // [v26 Updated]
     ];
 
     const DEFAULT_NOTES = `1. 收款方式：
@@ -525,3 +526,4 @@
 
 </body>
 </html>
+
