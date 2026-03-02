@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (群組不跨頁列印)</title>
+    <title>興居室內裝修 - 報價系統 v26 (金額不換行修正)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -239,9 +239,9 @@
 
                         <td class="p-2 align-top pt-3"><input type="text" v-model="item.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-800"></td>
                         <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-800" min="0"></td>
-                        <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.price" class="w-full text-right bg-transparent focus:outline-none text-gray-800" min="0"></td>
+                        <td class="p-2 align-top pt-3 whitespace-nowrap"><input type="number" v-model.number="item.price" class="w-full text-right bg-transparent focus:outline-none text-gray-800" min="0"></td>
                         
-                        <td class="p-2 text-right text-gray-800 font-medium relative align-top pt-3">
+                        <td class="p-2 text-right text-gray-800 font-medium relative align-top pt-3 whitespace-nowrap">
                             <span>{{ formatNumber(getEffectiveQty(item) * item.price) }}</span>
                             <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="pdf-hint text-[10px] text-gray-500">
                                 (未滿{{getEffectiveQty(item)}}以{{getEffectiveQty(item)}}計)
@@ -320,9 +320,9 @@
                             
                             <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="text" v-model="subItem.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-700"></td>
                             <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-700" min="0"></td>
-                            <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.price" class="w-full text-right bg-transparent focus:outline-none text-gray-700" min="0"></td>
+                            <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent whitespace-nowrap"><input type="number" v-model.number="subItem.price" class="w-full text-right bg-transparent focus:outline-none text-gray-700" min="0"></td>
                             
-                            <td class="p-2 text-right text-gray-700 relative align-top pt-3 bg-gray-50/30 print-bg-transparent">
+                            <td class="p-2 text-right text-gray-700 relative align-top pt-3 bg-gray-50/30 print-bg-transparent whitespace-nowrap">
                                 <span>{{ formatNumber(getEffectiveQty(subItem) * subItem.price) }}</span>
                                 <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="pdf-hint text-[10px] text-gray-500">
                                     (未滿{{getEffectiveQty(subItem)}}以{{getEffectiveQty(subItem)}}計)
@@ -339,7 +339,7 @@
                             <td colspan="4" class="p-2 text-right text-blue-800 print-text-black font-bold pr-4">
                                 {{ item.name || '群組' }} 小計：
                             </td>
-                            <td class="p-2 text-right text-blue-800 print-text-black font-bold border-t border-gray-300">
+                            <td class="p-2 text-right text-blue-800 print-text-black font-bold border-t border-gray-300 whitespace-nowrap">
                                 $ {{ formatNumber(getGroupSubtotal(item)) }}
                             </td>
                             <td class="p-2 text-center no-print">
@@ -357,7 +357,7 @@
             <div v-if="checkedItems.length > 0" class="no-print bg-blue-50 border border-blue-200 p-4 mt-4 rounded-lg flex flex-wrap items-center justify-between shadow-sm transition-all">
                 <div class="text-blue-800 text-sm mb-2 sm:mb-0 flex items-center">
                     <i class="fas fa-check-square mr-2 text-blue-600 text-lg"></i> 
-                    <span>已勾選 <strong class="text-blue-700 text-lg mx-1">{{ checkedItems.length }}</strong> 項，將組合金額：<strong class="text-blue-700 text-lg mx-1">$ {{ formatNumber(checkedSubtotal) }}</strong></span>
+                    <span>已勾選 <strong class="text-blue-700 text-lg mx-1">{{ checkedItems.length }}</strong> 項，將組合金額：<strong class="text-blue-700 text-lg mx-1 whitespace-nowrap">$ {{ formatNumber(checkedSubtotal) }}</strong></span>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
                     <input type="text" v-model="groupName" placeholder="輸入群組名稱 (例如：客廳木作工程)" class="flex-1 sm:w-64 border border-blue-300 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
@@ -370,7 +370,7 @@
 
         <div class="flex justify-end mb-12 mt-4">
             <div class="w-64 space-y-2">
-                <div class="flex justify-between text-gray-600"><span>總小計：</span><span>$ {{ formatNumber(subtotal) }}</span></div>
+                <div class="flex justify-between text-gray-600"><span>總小計：</span><span class="whitespace-nowrap">$ {{ formatNumber(subtotal) }}</span></div>
                 <div class="flex justify-between items-center text-gray-600">
                     <div class="flex items-center">
                         <span>稅金：</span>
@@ -380,10 +380,10 @@
                         </select>
                         <span class="ml-2 print-only text-xs" v-if="form.taxRate > 0">5%</span>
                     </div>
-                    <span>$ {{ formatNumber(taxAmount) }}</span>
+                    <span class="whitespace-nowrap">$ {{ formatNumber(taxAmount) }}</span>
                 </div>
                 <div class="flex justify-between font-bold text-xl text-gray-800 border-t-2 border-gray-800 pt-2">
-                    <span>總計：</span><span>$ {{ formatNumber(totalAmount) }}</span>
+                    <span>總計：</span><span class="whitespace-nowrap">$ {{ formatNumber(totalAmount) }}</span>
                 </div>
             </div>
         </div>
