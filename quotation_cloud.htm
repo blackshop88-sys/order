@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (新增通風門, 拖曳排序, 項目彙整)</title>
+    <title>興居室內裝修 - 報價系統 v26 (新增通風門, 拖曳排序, 群組小計)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -40,7 +40,7 @@
             .company-input { text-align: right; width: auto; display: inline-block; }
             .header-input { text-align: right; width: auto; display: inline-block; border-bottom: 1px dotted #ccc !important; }
             
-            /* 列印時的切換邏輯 */
+            /* 列印時的切換與顏色強制蓋過 */
             .web-view { display: none !important; }
             .print-view { display: block !important; }
             .editor-hint { display: none !important; } 
@@ -52,6 +52,9 @@
                 white-space: nowrap;
                 font-weight: normal;
             }
+            .print-text-black { color: #1f2937 !important; }
+            .print-border-black { border-color: #4b5563 !important; }
+            .print-bg-transparent { background-color: transparent !important; }
         }
 
         /* 寬版面設定 */
@@ -182,85 +185,182 @@
                 <thead>
                     <tr class="bg-gray-800 text-white text-sm">
                         <th class="p-2 w-16 text-center">#</th>
-                        <th class="p-2 w-[50%]">項目說明</th>
+                        <th class="p-2 w-[45%]">項目說明</th>
                         <th class="p-2 w-16 text-center">單位</th>
-                        <th class="p-2 w-16 text-center">數量</th>
-                        <th class="p-2 w-20 text-right">單價</th>
+                        <th class="p-2 w-20 text-center">數量</th>
+                        <th class="p-2 w-24 text-right">單價</th>
                         <th class="p-2 w-24 text-right">複價</th>
-                        <th class="p-2 w-16 text-center no-print">操作</th>
+                        <th class="p-2 w-20 text-center no-print">操作</th>
                     </tr>
                 </thead>
                 <tbody class="text-sm">
-                    <tr v-for="(item, index) in form.items" :key="index" 
-                        class="border-b border-gray-200 hover:bg-gray-50 group transition-all duration-200"
-                        :class="{'row-checked': item.checked, 'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
-                        draggable="true"
-                        @dragstart="onDragStart(index, $event)"
-                        @dragenter.prevent="onDragEnter(index)"
-                        @dragover.prevent
-                        @drop="onDrop(index)"
-                        @dragend="onDragEnd">
+                    <template v-for="(item, index) in form.items" :key="item.id || index">
                         
-                        <td class="p-2 text-center text-gray-500 align-top pt-3">
-                            <div class="flex items-center justify-center gap-2">
-                                <input type="checkbox" v-model="item.checked" class="no-print w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-                                <span class="cursor-move" title="拖曳排序">{{ index + 1 }}</span>
-                            </div>
-                        </td>
-                        
-                        <td class="p-2 align-top">
-                            <div class="web-view">
-                                <input type="text" 
-                                       :value="getCleanName(item.name)"
-                                       @input="handleNameInput(item, $event)"
-                                       class="w-full bg-transparent focus:outline-none font-medium" 
-                                       placeholder="項目名稱">
+                        <tr v-if="!item.isGroup" 
+                            class="border-b border-gray-200 hover:bg-gray-50 group transition-all duration-200"
+                            :class="{'row-checked': item.checked, 'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
+                            draggable="true"
+                            @dragstart="onDragStart(index, $event)"
+                            @dragenter.prevent="onDragEnter(index)"
+                            @dragover.prevent
+                            @drop="onDrop(index)"
+                            @dragend="onDragEnd">
+                            
+                            <td class="p-2 text-center text-gray-500 align-top pt-3">
+                                <div class="web-view flex items-center justify-center gap-2">
+                                    <input type="checkbox" v-model="item.checked" class="no-print w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                    <span class="cursor-move" title="拖曳排序">{{ index + 1 }}</span>
+                                </div>
+                                <div class="print-view">{{ index + 1 }}</div>
+                            </td>
+                            
+                            <td class="p-2 align-top">
+                                <div class="web-view">
+                                    <input type="text" 
+                                           :value="getCleanName(item.name)"
+                                           @input="handleNameInput(item, $event)"
+                                           class="w-full bg-transparent focus:outline-none font-medium text-gray-800" 
+                                           placeholder="項目名稱">
+                                    <div v-if="getConditionText(item.name)" class="text-gray-400 text-[11px] mt-0.5">
+                                        {{ getConditionText(item.name) }}
+                                    </div>
+                                    <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(item)}}，將以 {{getEffectiveQty(item)}} 計價
+                                    </div>
+                                </div>
+                                <div class="print-view text-gray-800 font-medium">
+                                    {{ getCleanName(item.name) }}
+                                </div>
+                            </td>
+
+                            <td class="p-2 align-top pt-3"><input type="text" v-model="item.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-800"></td>
+                            <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-800" min="0"></td>
+                            <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.price" class="w-full text-right bg-transparent focus:outline-none text-gray-800" min="0"></td>
+                            
+                            <td class="p-2 text-right text-gray-800 font-medium relative align-top pt-3">
+                                <span>{{ formatNumber(getEffectiveQty(item) * item.price) }}</span>
+                                <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="pdf-hint text-[10px] text-gray-500">
+                                    (未滿{{getEffectiveQty(item)}}以{{getEffectiveQty(item)}}計)
+                                </div>
+                            </td>
+
+                            <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
+                                <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳排序"><i class="fas fa-grip-lines"></i></span>
+                                <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除項目"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+
+                        <template v-else>
+                            
+                            <tr class="border-t-2 border-b border-blue-200 bg-blue-50/60 print-bg-transparent group transition-all duration-200"
+                                :class="{'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
+                                draggable="true"
+                                @dragstart="onDragStart(index, $event)"
+                                @dragenter.prevent="onDragEnter(index)"
+                                @dragover.prevent
+                                @drop="onDrop(index)"
+                                @dragend="onDragEnd">
                                 
-                                <div v-if="getConditionText(item.name)" class="text-gray-400 text-[11px] mt-0.5 pl-1">
-                                    {{ getConditionText(item.name) }}
-                                </div>
-                                <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
-                                    <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(item)}}，將以 {{getEffectiveQty(item)}} 計價
-                                </div>
-                            </div>
+                                <td class="p-2 text-center text-blue-600 print-text-black align-top pt-3 font-bold border-l-4 border-blue-400 print-border-black">
+                                    <div class="web-view flex items-center justify-center gap-2">
+                                        <i class="fas fa-folder-open text-blue-400 no-print"></i>
+                                        <span class="cursor-move" title="拖曳整個群組">{{ index + 1 }}</span>
+                                    </div>
+                                    <div class="print-view">{{ index + 1 }}</div>
+                                </td>
+                                
+                                <td colspan="5" class="p-2 align-top pt-3">
+                                    <div class="web-view flex items-center gap-2">
+                                        <span class="font-bold text-blue-800">群組：</span>
+                                        <input type="text" v-model="item.name" class="font-bold text-blue-800 bg-transparent focus:outline-none border-b border-blue-200 w-1/2" placeholder="群組名稱">
+                                    </div>
+                                    <div class="print-view font-bold text-gray-800 text-base mb-1">
+                                        【{{ item.name }}】
+                                    </div>
+                                </td>
+                                
+                                <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
+                                    <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳群組"><i class="fas fa-grip-lines"></i></span>
+                                    <button @click="ungroupItem(index)" class="action-btn text-orange-400 hover:text-orange-600" title="解散群組 (細項將恢復獨立)"><i class="fas fa-unlink"></i></button>
+                                    <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除整組"><i class="fas fa-trash-alt"></i></button>
+                                </td>
+                            </tr>
 
-                            <div class="print-view">
-                                {{ getCleanName(item.name) }}
-                            </div>
-                        </td>
+                            <tr v-for="(subItem, sIdx) in item.subItems" :key="'sub-'+sIdx" class="border-b border-gray-100 hover:bg-gray-50 group/sub print-bg-transparent">
+                                
+                                <td class="p-2 text-center text-gray-400 align-top pt-3 text-xs border-l-4 border-blue-400 print-border-black bg-gray-50/30 print-bg-transparent">
+                                    {{ index + 1 }}-{{ sIdx + 1 }}
+                                </td>
+                                
+                                <td class="p-2 align-top pl-6 bg-gray-50/30 print-bg-transparent">
+                                    <div class="web-view flex items-start gap-2">
+                                        <i class="fas fa-angle-right text-gray-300 mt-1"></i>
+                                        <div class="w-full">
+                                            <input type="text" 
+                                                   :value="getCleanName(subItem.name)"
+                                                   @input="handleNameInput(subItem, $event)"
+                                                   class="w-full bg-transparent focus:outline-none font-medium text-gray-700" 
+                                                   placeholder="項目名稱">
+                                            <div v-if="getConditionText(subItem.name)" class="text-gray-400 text-[11px] mt-0.5">
+                                                {{ getConditionText(subItem.name) }}
+                                            </div>
+                                            <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
+                                                <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(subItem)}}，將以 {{getEffectiveQty(subItem)}} 計價
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="print-view text-gray-700 font-medium pl-2">
+                                        - {{ getCleanName(subItem.name) }}
+                                    </div>
+                                </td>
+                                
+                                <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="text" v-model="subItem.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-700"></td>
+                                <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-700" min="0"></td>
+                                <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.price" class="w-full text-right bg-transparent focus:outline-none text-gray-700" min="0"></td>
+                                
+                                <td class="p-2 text-right text-gray-700 relative align-top pt-3 bg-gray-50/30 print-bg-transparent">
+                                    <span>{{ formatNumber(getEffectiveQty(subItem) * subItem.price) }}</span>
+                                    <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="pdf-hint text-[10px] text-gray-500">
+                                        (未滿{{getEffectiveQty(subItem)}}以{{getEffectiveQty(subItem)}}計)
+                                    </div>
+                                </td>
+                                
+                                <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-0 group-hover/sub:opacity-100 transition-opacity align-top pt-3 bg-gray-50/30 border-r-4 border-transparent">
+                                    <button @click="removeSubItem(index, sIdx)" class="action-btn text-red-300 hover:text-red-500" title="刪除此細項"><i class="fas fa-times"></i></button>
+                                </td>
+                            </tr>
 
-                        <td class="p-2 align-top pt-3"><input type="text" v-model="item.unit" class="w-full text-center bg-transparent focus:outline-none"></td>
-                        <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.qty" class="w-full text-center bg-transparent focus:outline-none" min="0"></td>
-                        <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.price" class="w-full text-right bg-transparent focus:outline-none" min="0"></td>
-                        
-                        <td class="p-2 text-right font-medium relative align-top pt-3">
-                            <span>{{ formatNumber(getEffectiveQty(item) * item.price) }}</span>
-                            <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="pdf-hint">
-                                (未滿{{getEffectiveQty(item)}}以{{getEffectiveQty(item)}}計)
-                            </div>
-                        </td>
+                            <tr class="border-b-4 border-blue-200 bg-blue-50/60 print-bg-transparent print-border-black">
+                                <td class="border-l-4 border-blue-400 print-border-black"></td>
+                                <td colspan="4" class="p-2 text-right text-blue-800 print-text-black font-bold pr-4">
+                                    {{ item.name || '群組' }} 小計：
+                                </td>
+                                <td class="p-2 text-right text-blue-800 print-text-black font-bold border-t border-blue-200 print-border-black">
+                                    $ {{ formatNumber(getGroupSubtotal(item)) }}
+                                </td>
+                                <td class="p-2 text-center no-print">
+                                    <button @click="addSubItem(index)" class="text-blue-500 hover:text-blue-700 text-xs font-bold bg-white px-2 py-1 rounded shadow-sm border border-blue-200 transition" title="在群組內新增空白項目"><i class="fas fa-plus"></i> 新增</button>
+                                </td>
+                            </tr>
 
-                        <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
-                            <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳排序"><i class="fas fa-grip-lines"></i></span>
-                            <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
+                        </template>
+                    </template>
                 </tbody>
             </table>
             
             <button @click="addItem" class="no-print mt-3 w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-500 hover:text-gray-700 rounded transition">
-                <i class="fas fa-plus"></i> 新增空白項目
+                <i class="fas fa-plus"></i> 新增獨立空白項目
             </button>
 
             <div v-if="checkedItems.length > 0" class="no-print bg-blue-50 border border-blue-200 p-4 mt-4 rounded-lg flex flex-wrap items-center justify-between shadow-sm transition-all">
                 <div class="text-blue-800 text-sm mb-2 sm:mb-0 flex items-center">
                     <i class="fas fa-check-square mr-2 text-blue-600 text-lg"></i> 
-                    <span>已勾選 <strong class="text-blue-700 text-lg mx-1">{{ checkedItems.length }}</strong> 項，金額小計：<strong class="text-blue-700 text-lg mx-1">$ {{ formatNumber(checkedSubtotal) }}</strong></span>
+                    <span>已勾選 <strong class="text-blue-700 text-lg mx-1">{{ checkedItems.length }}</strong> 項，將組合金額：<strong class="text-blue-700 text-lg mx-1">$ {{ formatNumber(checkedSubtotal) }}</strong></span>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <input type="text" v-model="groupName" placeholder="輸入彙整名稱 (例如：客廳木作工程一式)" class="flex-1 sm:w-64 border border-blue-300 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <input type="text" v-model="groupName" placeholder="輸入群組名稱 (例如：客廳木作工程)" class="flex-1 sm:w-64 border border-blue-300 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     <button @click="groupCheckedItems" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold transition-colors shadow-sm flex items-center whitespace-nowrap">
-                        <i class="fas fa-object-group mr-1"></i> 合併為單一項目
+                        <i class="fas fa-object-group mr-1"></i> 建立群組小計
                     </button>
                 </div>
             </div>
@@ -268,7 +368,7 @@
 
         <div class="flex justify-end mb-12 mt-4">
             <div class="w-64 space-y-2">
-                <div class="flex justify-between text-gray-600"><span>小計：</span><span>$ {{ formatNumber(subtotal) }}</span></div>
+                <div class="flex justify-between text-gray-600"><span>總小計：</span><span>$ {{ formatNumber(subtotal) }}</span></div>
                 <div class="flex justify-between items-center text-gray-600">
                     <div class="flex items-center">
                         <span>稅金：</span>
@@ -339,7 +439,7 @@
         { name: '浴室衛浴設備安裝', unit: '間', price: 5500, qty: 0 },
         { name: 'HCG和成牌基本款衛浴設備(馬桶CS130EJ+臉盆LF367SR+臉盆龍頭LF4330NE+沐浴龍頭BF3731+鏡子BA727)', unit: '套', price: 15000, qty: 0 },
         { name: '鋁三合一通風門框+門扇', unit: '樘', price: 25000, qty: 0 }
-    ].map(item => ({ ...item, checked: false })); // 初始化加入 checked 屬性
+    ].map(item => ({ ...item, checked: false }));
 
     const DEFAULT_NOTES = `1. 收款方式：
 2. 單價皆為現金價不含稅，營業稅外加
@@ -406,8 +506,12 @@
             }
         },
         computed: {
+            // 最下方總計（包含獨立項目 + 各群組小計）
             subtotal() { 
                 return this.form.items.reduce((sum, item) => {
+                    if (item.isGroup) {
+                        return sum + this.getGroupSubtotal(item);
+                    }
                     const effectiveQty = this.getEffectiveQty(item);
                     return sum + (effectiveQty * item.price);
                 }, 0); 
@@ -415,11 +519,11 @@
             taxAmount() { return Math.round(this.subtotal * this.form.taxRate); },
             totalAmount() { return this.subtotal + this.taxAmount; },
             
-            // 計算已勾選的項目
+            // 抓出目前勾選的項目 (只有獨立項目能被勾選)
             checkedItems() {
-                return this.form.items.filter(item => item.checked);
+                return this.form.items.filter(item => !item.isGroup && item.checked);
             },
-            // 計算勾選項目的總計金額
+            // 勾選項目的預覽加總
             checkedSubtotal() {
                 return this.checkedItems.reduce((sum, item) => sum + (this.getEffectiveQty(item) * item.price), 0);
             }
@@ -439,41 +543,81 @@
             this.recordHistory(true);
         },
         methods: {
-            // 彙整合併功能
+            // === 群組小計相關功能 ===
+            
+            // 計算單一整個群組的小計
+            getGroupSubtotal(group) {
+                if (!group.subItems) return 0;
+                return group.subItems.reduce((sum, item) => sum + (this.getEffectiveQty(item) * item.price), 0);
+            },
+
+            // 建立群組
             groupCheckedItems() {
                 if (!this.groupName.trim()) {
-                    alert('請輸入彙整項目的名稱！');
+                    alert('請輸入群組項目的名稱！');
                     return;
                 }
-                if (!confirm('確定要將勾選的項目合併為單一項目嗎？\n(注意：合併後原來的明細細項將會被替換)')) {
+                if (!confirm('確定要將勾選的項目建立為一個群組小計嗎？')) {
                     return;
                 }
 
-                // 找到第一個勾選項目的索引，作為插入新項目的位置
+                // 找到第一個勾選項目的位置
                 const insertIndex = this.form.items.findIndex(item => item.checked);
+                const checkedList = this.form.items.filter(item => item.checked);
                 
-                // 建立彙整後的新項目
-                const newItem = {
+                // 複製這些項目做為子項目，並把 checked 屬性拔掉確保乾淨
+                const subItems = checkedList.map(item => {
+                    const cleanItem = { ...item };
+                    delete cleanItem.checked;
+                    return cleanItem;
+                });
+
+                // 產生群組物件
+                const newGroup = {
+                    isGroup: true,
                     name: this.groupName.trim(),
-                    unit: '式',
-                    qty: 1,
-                    price: this.checkedSubtotal,
+                    subItems: subItems,
                     checked: false
                 };
 
-                // 過濾掉已勾選的項目 (移除舊項目)
+                // 在外層列表中移除已經被收編的勾選項目
                 this.form.items = this.form.items.filter(item => !item.checked);
 
-                // 在原本第一個勾選的位置插入新彙整項目
-                this.form.items.splice(insertIndex, 0, newItem);
-
-                // 清空輸入框
-                this.groupName = '';
+                // 在原本位置插入這個群組
+                this.form.items.splice(insertIndex, 0, newGroup);
+                this.groupName = ''; // 清空輸入框
             },
 
-            // 拖曳排序相關方法
+            // 解散群組 (把細項推回外層)
+            ungroupItem(index) {
+                const group = this.form.items[index];
+                if (confirm(`確定要解散「${group.name}」群組嗎？(裡面的細項會恢復為獨立項目)`)) {
+                    // 替換原本的位置，塞入子項目
+                    const subItemsToRestore = group.subItems.map(item => ({...item, checked: false}));
+                    this.form.items.splice(index, 1, ...subItemsToRestore);
+                }
+            },
+
+            // 新增一個空白子細項到群組內
+            addSubItem(groupIndex) {
+                this.form.items[groupIndex].subItems.push({
+                    name: '', unit: '式', qty: 1, price: 0
+                });
+            },
+
+            // 移除群組內的特定子細項
+            removeSubItem(groupIndex, subIndex) {
+                const group = this.form.items[groupIndex];
+                group.subItems.splice(subIndex, 1);
+                // 如果刪除後沒有細項了，連群組一起刪除
+                if (group.subItems.length === 0) {
+                    this.form.items.splice(groupIndex, 1);
+                }
+            },
+
+            // === 拖曳相關方法 ===
             onDragStart(index, event) {
-                // 如果點擊的是 input (如 checkbox) 就不觸發拖曳
+                // 如果點擊到輸入框或打勾框就不觸發拖曳
                 if (event.target.tagName.toLowerCase() === 'input') {
                     event.preventDefault();
                     return;
@@ -501,6 +645,7 @@
                 this.dragOverIndex = null;
             },
 
+            // === 基本資料計算與操作 ===
             getEffectiveQty(item) {
                 if (!item.qty || item.qty <= 0) return 0;
                 const match = item.name.match(/不滿(\d+)/);
@@ -616,10 +761,10 @@
                 if(target) {
                     this.form = JSON.parse(JSON.stringify(target));
                     
-                    // 確保載入舊檔案時，每個項目都有 checked 屬性，避免 Vue 抓不到
+                    // 確保載入舊檔案時，每個正常項目都有 checked 屬性
                     if (this.form.items) {
                         this.form.items.forEach(item => {
-                            if (typeof item.checked === 'undefined') item.checked = false;
+                            if (!item.isGroup && typeof item.checked === 'undefined') item.checked = false;
                         });
                     }
                     
