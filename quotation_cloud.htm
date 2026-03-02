@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (群組名稱含底色)</title>
+    <title>興居室內裝修 - 報價系統 v26 (群組不跨頁列印)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -54,6 +54,12 @@
             }
             .print-text-black { color: #1f2937 !important; }
             .print-bg-transparent { background-color: transparent !important; }
+
+            /* 強制群組不跨頁切斷 */
+            tbody.print-avoid-break {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
         }
 
         /* 寬版面設定 */
@@ -192,12 +198,66 @@
                         <th class="p-2 w-20 text-center no-print">操作</th>
                     </tr>
                 </thead>
-                <tbody class="text-sm">
-                    <template v-for="(item, index) in form.items" :key="item.id || index">
+                <tbody v-for="(item, index) in form.items" :key="item.id || index" class="text-sm print-avoid-break">
                         
-                        <tr v-if="!item.isGroup" 
-                            class="border-b border-gray-200 hover:bg-gray-50 group transition-all duration-200"
-                            :class="{'row-checked': item.checked, 'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
+                    <tr v-if="!item.isGroup" 
+                        class="border-b border-gray-200 hover:bg-gray-50 group transition-all duration-200"
+                        :class="{'row-checked': item.checked, 'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
+                        draggable="true"
+                        @dragstart="onDragStart(index, $event)"
+                        @dragenter.prevent="onDragEnter(index)"
+                        @dragover.prevent
+                        @drop="onDrop(index)"
+                        @dragend="onDragEnd">
+                        
+                        <td class="p-2 text-center text-gray-500 align-top pt-3">
+                            <div class="web-view flex items-center justify-center gap-2">
+                                <input type="checkbox" v-model="item.checked" class="no-print w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                <span class="cursor-move" title="拖曳排序">{{ index + 1 }}</span>
+                            </div>
+                            <div class="print-view">{{ index + 1 }}</div>
+                        </td>
+                        
+                        <td class="p-2 align-top">
+                            <div class="web-view">
+                                <input type="text" 
+                                        :value="getCleanName(item.name)"
+                                        @input="handleNameInput(item, $event)"
+                                        class="w-full bg-transparent focus:outline-none font-medium text-gray-800" 
+                                        placeholder="項目名稱">
+                                <div v-if="getConditionText(item.name)" class="text-gray-400 text-[11px] mt-0.5">
+                                    {{ getConditionText(item.name) }}
+                                </div>
+                                <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(item)}}，將以 {{getEffectiveQty(item)}} 計價
+                                </div>
+                            </div>
+                            <div class="print-view text-gray-800 font-medium">
+                                {{ getCleanName(item.name) }}
+                            </div>
+                        </td>
+
+                        <td class="p-2 align-top pt-3"><input type="text" v-model="item.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-800"></td>
+                        <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-800" min="0"></td>
+                        <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.price" class="w-full text-right bg-transparent focus:outline-none text-gray-800" min="0"></td>
+                        
+                        <td class="p-2 text-right text-gray-800 font-medium relative align-top pt-3">
+                            <span>{{ formatNumber(getEffectiveQty(item) * item.price) }}</span>
+                            <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="pdf-hint text-[10px] text-gray-500">
+                                (未滿{{getEffectiveQty(item)}}以{{getEffectiveQty(item)}}計)
+                            </div>
+                        </td>
+
+                        <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
+                            <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳排序"><i class="fas fa-grip-lines"></i></span>
+                            <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除項目"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+
+                    <template v-else>
+                        
+                        <tr class="border-b border-gray-200 bg-gray-100 group transition-all duration-200"
+                            :class="{'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
                             draggable="true"
                             @dragstart="onDragStart(index, $event)"
                             @dragenter.prevent="onDragEnter(index)"
@@ -205,144 +265,87 @@
                             @drop="onDrop(index)"
                             @dragend="onDragEnd">
                             
-                            <td class="p-2 text-center text-gray-500 align-top pt-3">
+                            <td class="p-2 text-center text-blue-600 print-text-black align-top pt-3 font-bold">
                                 <div class="web-view flex items-center justify-center gap-2">
-                                    <input type="checkbox" v-model="item.checked" class="no-print w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-                                    <span class="cursor-move" title="拖曳排序">{{ index + 1 }}</span>
+                                    <i class="fas fa-folder-open text-blue-400 no-print"></i>
+                                    <span class="cursor-move" title="拖曳整個群組">{{ index + 1 }}</span>
                                 </div>
                                 <div class="print-view">{{ index + 1 }}</div>
                             </td>
                             
-                            <td class="p-2 align-top">
-                                <div class="web-view">
-                                    <input type="text" 
-                                           :value="getCleanName(item.name)"
-                                           @input="handleNameInput(item, $event)"
-                                           class="w-full bg-transparent focus:outline-none font-medium text-gray-800" 
-                                           placeholder="項目名稱">
-                                    <div v-if="getConditionText(item.name)" class="text-gray-400 text-[11px] mt-0.5">
-                                        {{ getConditionText(item.name) }}
-                                    </div>
-                                    <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
-                                        <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(item)}}，將以 {{getEffectiveQty(item)}} 計價
-                                    </div>
+                            <td colspan="5" class="p-2 align-top pt-3">
+                                <div class="web-view flex items-center gap-2">
+                                    <span class="font-bold text-blue-800">群組：</span>
+                                    <input type="text" v-model="item.name" class="font-bold text-blue-800 bg-transparent focus:outline-none border-b border-blue-200 w-1/2" placeholder="群組名稱">
                                 </div>
-                                <div class="print-view text-gray-800 font-medium">
-                                    {{ getCleanName(item.name) }}
+                                <div class="print-view font-bold text-gray-800 text-base mb-1">
+                                    【{{ item.name }}】
                                 </div>
                             </td>
-
-                            <td class="p-2 align-top pt-3"><input type="text" v-model="item.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-800"></td>
-                            <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-800" min="0"></td>
-                            <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.price" class="w-full text-right bg-transparent focus:outline-none text-gray-800" min="0"></td>
                             
-                            <td class="p-2 text-right text-gray-800 font-medium relative align-top pt-3">
-                                <span>{{ formatNumber(getEffectiveQty(item) * item.price) }}</span>
-                                <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="pdf-hint text-[10px] text-gray-500">
-                                    (未滿{{getEffectiveQty(item)}}以{{getEffectiveQty(item)}}計)
-                                </div>
-                            </td>
-
                             <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
-                                <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳排序"><i class="fas fa-grip-lines"></i></span>
-                                <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除項目"><i class="fas fa-trash-alt"></i></button>
+                                <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳群組"><i class="fas fa-grip-lines"></i></span>
+                                <button @click="ungroupItem(index)" class="action-btn text-orange-400 hover:text-orange-600" title="解散群組 (細項將恢復獨立)"><i class="fas fa-unlink"></i></button>
+                                <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除整組"><i class="fas fa-trash-alt"></i></button>
                             </td>
                         </tr>
 
-                        <template v-else>
+                        <tr v-for="(subItem, sIdx) in item.subItems" :key="'sub-'+sIdx" class="border-b border-gray-100 hover:bg-gray-50 group/sub print-bg-transparent">
                             
-                            <tr class="border-b border-gray-200 bg-gray-100 group transition-all duration-200"
-                                :class="{'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
-                                draggable="true"
-                                @dragstart="onDragStart(index, $event)"
-                                @dragenter.prevent="onDragEnter(index)"
-                                @dragover.prevent
-                                @drop="onDrop(index)"
-                                @dragend="onDragEnd">
-                                
-                                <td class="p-2 text-center text-blue-600 print-text-black align-top pt-3 font-bold">
-                                    <div class="web-view flex items-center justify-center gap-2">
-                                        <i class="fas fa-folder-open text-blue-400 no-print"></i>
-                                        <span class="cursor-move" title="拖曳整個群組">{{ index + 1 }}</span>
-                                    </div>
-                                    <div class="print-view">{{ index + 1 }}</div>
-                                </td>
-                                
-                                <td colspan="5" class="p-2 align-top pt-3">
-                                    <div class="web-view flex items-center gap-2">
-                                        <span class="font-bold text-blue-800">群組：</span>
-                                        <input type="text" v-model="item.name" class="font-bold text-blue-800 bg-transparent focus:outline-none border-b border-blue-200 w-1/2" placeholder="群組名稱">
-                                    </div>
-                                    <div class="print-view font-bold text-gray-800 text-base mb-1">
-                                        【{{ item.name }}】
-                                    </div>
-                                </td>
-                                
-                                <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
-                                    <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳群組"><i class="fas fa-grip-lines"></i></span>
-                                    <button @click="ungroupItem(index)" class="action-btn text-orange-400 hover:text-orange-600" title="解散群組 (細項將恢復獨立)"><i class="fas fa-unlink"></i></button>
-                                    <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除整組"><i class="fas fa-trash-alt"></i></button>
-                                </td>
-                            </tr>
-
-                            <tr v-for="(subItem, sIdx) in item.subItems" :key="'sub-'+sIdx" class="border-b border-gray-100 hover:bg-gray-50 group/sub print-bg-transparent">
-                                
-                                <td class="p-2 text-center text-gray-400 align-top pt-3 text-xs bg-gray-50/30 print-bg-transparent">
-                                    {{ index + 1 }}-{{ sIdx + 1 }}
-                                </td>
-                                
-                                <td class="p-2 align-top pl-6 bg-gray-50/30 print-bg-transparent">
-                                    <div class="web-view flex items-start gap-2">
-                                        <i class="fas fa-angle-right text-gray-300 mt-1"></i>
-                                        <div class="w-full">
-                                            <input type="text" 
-                                                   :value="getCleanName(subItem.name)"
-                                                   @input="handleNameInput(subItem, $event)"
-                                                   class="w-full bg-transparent focus:outline-none font-medium text-gray-700" 
-                                                   placeholder="項目名稱">
-                                            <div v-if="getConditionText(subItem.name)" class="text-gray-400 text-[11px] mt-0.5">
-                                                {{ getConditionText(subItem.name) }}
-                                            </div>
-                                            <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
-                                                <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(subItem)}}，將以 {{getEffectiveQty(subItem)}} 計價
-                                            </div>
+                            <td class="p-2 text-center text-gray-400 align-top pt-3 text-xs bg-gray-50/30 print-bg-transparent">
+                                {{ index + 1 }}-{{ sIdx + 1 }}
+                            </td>
+                            
+                            <td class="p-2 align-top pl-6 bg-gray-50/30 print-bg-transparent">
+                                <div class="web-view flex items-start gap-2">
+                                    <i class="fas fa-angle-right text-gray-300 mt-1"></i>
+                                    <div class="w-full">
+                                        <input type="text" 
+                                                :value="getCleanName(subItem.name)"
+                                                @input="handleNameInput(subItem, $event)"
+                                                class="w-full bg-transparent focus:outline-none font-medium text-gray-700" 
+                                                placeholder="項目名稱">
+                                        <div v-if="getConditionText(subItem.name)" class="text-gray-400 text-[11px] mt-0.5">
+                                            {{ getConditionText(subItem.name) }}
+                                        </div>
+                                        <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(subItem)}}，將以 {{getEffectiveQty(subItem)}} 計價
                                         </div>
                                     </div>
-                                    <div class="print-view text-gray-700 font-medium pl-2">
-                                        - {{ getCleanName(subItem.name) }}
-                                    </div>
-                                </td>
-                                
-                                <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="text" v-model="subItem.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-700"></td>
-                                <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-700" min="0"></td>
-                                <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.price" class="w-full text-right bg-transparent focus:outline-none text-gray-700" min="0"></td>
-                                
-                                <td class="p-2 text-right text-gray-700 relative align-top pt-3 bg-gray-50/30 print-bg-transparent">
-                                    <span>{{ formatNumber(getEffectiveQty(subItem) * subItem.price) }}</span>
-                                    <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="pdf-hint text-[10px] text-gray-500">
-                                        (未滿{{getEffectiveQty(subItem)}}以{{getEffectiveQty(subItem)}}計)
-                                    </div>
-                                </td>
-                                
-                                <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-0 group-hover/sub:opacity-100 transition-opacity align-top pt-3 bg-gray-50/30">
-                                    <button @click="removeSubItem(index, sIdx)" class="action-btn text-red-300 hover:text-red-500" title="刪除此細項"><i class="fas fa-times"></i></button>
-                                </td>
-                            </tr>
+                                </div>
+                                <div class="print-view text-gray-700 font-medium pl-2">
+                                    - {{ getCleanName(subItem.name) }}
+                                </div>
+                            </td>
+                            
+                            <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="text" v-model="subItem.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-700"></td>
+                            <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-700" min="0"></td>
+                            <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.price" class="w-full text-right bg-transparent focus:outline-none text-gray-700" min="0"></td>
+                            
+                            <td class="p-2 text-right text-gray-700 relative align-top pt-3 bg-gray-50/30 print-bg-transparent">
+                                <span>{{ formatNumber(getEffectiveQty(subItem) * subItem.price) }}</span>
+                                <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="pdf-hint text-[10px] text-gray-500">
+                                    (未滿{{getEffectiveQty(subItem)}}以{{getEffectiveQty(subItem)}}計)
+                                </div>
+                            </td>
+                            
+                            <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-0 group-hover/sub:opacity-100 transition-opacity align-top pt-3 bg-gray-50/30">
+                                <button @click="removeSubItem(index, sIdx)" class="action-btn text-red-300 hover:text-red-500" title="刪除此細項"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
 
-                            <tr class="border-b border-gray-200 bg-blue-50/60 print-bg-transparent">
-                                <td></td>
-                                <td colspan="4" class="p-2 text-right text-blue-800 print-text-black font-bold pr-4">
-                                    {{ item.name || '群組' }} 小計：
-                                </td>
-                                <td class="p-2 text-right text-blue-800 print-text-black font-bold border-t border-gray-300">
-                                    $ {{ formatNumber(getGroupSubtotal(item)) }}
-                                </td>
-                                <td class="p-2 text-center no-print">
-                                    <button @click="addSubItem(index)" class="text-blue-500 hover:text-blue-700 text-xs font-bold bg-white px-2 py-1 rounded shadow-sm border border-blue-200 transition" title="在群組內新增空白項目"><i class="fas fa-plus"></i> 新增</button>
-                                </td>
-                            </tr>
-
-                        </template>
+                        <tr class="border-b border-gray-200 bg-blue-50/60 print-bg-transparent">
+                            <td></td>
+                            <td colspan="4" class="p-2 text-right text-blue-800 print-text-black font-bold pr-4">
+                                {{ item.name || '群組' }} 小計：
+                            </td>
+                            <td class="p-2 text-right text-blue-800 print-text-black font-bold border-t border-gray-300">
+                                $ {{ formatNumber(getGroupSubtotal(item)) }}
+                            </td>
+                            <td class="p-2 text-center no-print">
+                                <button @click="addSubItem(index)" class="text-blue-500 hover:text-blue-700 text-xs font-bold bg-white px-2 py-1 rounded shadow-sm border border-blue-200 transition" title="在群組內新增空白項目"><i class="fas fa-plus"></i> 新增</button>
+                            </td>
+                        </tr>
                     </template>
                 </tbody>
             </table>
