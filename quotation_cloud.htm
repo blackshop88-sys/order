@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (新增通風門)</title>
+    <title>興居室內裝修 - 報價系統 v26 (新增通風門, 拖曳排序)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -67,6 +67,10 @@
         }
         .header-input { text-align: right; background: transparent; border-bottom: 1px dotted #a0aec0; outline: none; }
         .header-input:focus { border-bottom-color: #2563eb; }
+        
+        /* 拖曳時的視覺回饋 */
+        .drag-over { border-top: 2px solid #3b82f6 !important; }
+        .dragging { opacity: 0.4; background-color: #f8fafc; }
     </style>
 </head>
 <body>
@@ -186,9 +190,17 @@
                     </tr>
                 </thead>
                 <tbody class="text-sm">
-                    <tr v-for="(item, index) in form.items" :key="index" class="border-b border-gray-200 hover:bg-gray-50 group">
+                    <tr v-for="(item, index) in form.items" :key="index" 
+                        class="border-b border-gray-200 hover:bg-gray-50 group transition-all duration-200"
+                        :class="{'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
+                        draggable="true"
+                        @dragstart="onDragStart(index, $event)"
+                        @dragenter.prevent="onDragEnter(index)"
+                        @dragover.prevent
+                        @drop="onDrop(index)"
+                        @dragend="onDragEnd">
                         
-                        <td class="p-2 text-center text-gray-500 align-top pt-3">{{ index + 1 }}</td>
+                        <td class="p-2 text-center text-gray-500 align-top pt-3 cursor-move">{{ index + 1 }}</td>
                         
                         <td class="p-2 align-top">
                             <div class="web-view">
@@ -222,11 +234,8 @@
                             </div>
                         </td>
 
-                        <td class="p-2 text-center no-print flex justify-center items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
-                            <button @click="moveItem(index, -1)" class="action-btn text-blue-400 hover:text-blue-600" title="上移" v-if="index > 0"><i class="fas fa-arrow-up"></i></button>
-                            <span class="w-5" v-else></span>
-                            <button @click="moveItem(index, 1)" class="action-btn text-blue-400 hover:text-blue-600" title="下移" v-if="index < form.items.length - 1"><i class="fas fa-arrow-down"></i></button>
-                            <span class="w-5" v-else></span>
+                        <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
+                            <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳排序"><i class="fas fa-grip-lines"></i></span>
                             <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除"><i class="fas fa-trash-alt"></i></button>
                         </td>
                     </tr>
@@ -309,7 +318,7 @@
         { name: '浴室範圍配給排水管一套 舊改新', unit: '間', price: 25000, qty: 0 },
         { name: '浴室衛浴設備安裝', unit: '間', price: 5500, qty: 0 },
         { name: 'HCG和成牌基本款衛浴設備(馬桶CS130EJ+臉盆LF367SR+臉盆龍頭LF4330NE+沐浴龍頭BF3731+鏡子BA727)', unit: '套', price: 15000, qty: 0 },
-        { name: '鋁三合一通風門框+門扇', unit: '樘', price: 25000, qty: 0 } // [v26 Updated]
+        { name: '鋁三合一通風門框+門扇', unit: '樘', price: 25000, qty: 0 }
     ];
 
     const DEFAULT_NOTES = `1. 收款方式：
@@ -334,6 +343,10 @@
                 historyIndex: -1,
                 isUndoing: false,
                 debounceTimer: null,
+                
+                // 拖曳狀態記錄
+                dragIndex: null,
+                dragOverIndex: null,
 
                 form: {
                     id: Date.now(),
@@ -394,6 +407,31 @@
             this.recordHistory(true);
         },
         methods: {
+            // 拖曳排序相關方法
+            onDragStart(index, event) {
+                this.dragIndex = index;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', index); // 兼容某些瀏覽器
+            },
+            onDragEnter(index) {
+                if (this.dragIndex !== null && this.dragIndex !== index) {
+                    this.dragOverIndex = index;
+                }
+            },
+            onDrop(index) {
+                if (this.dragIndex !== null && this.dragIndex !== index) {
+                    const items = this.form.items;
+                    const movedItem = items.splice(this.dragIndex, 1)[0];
+                    items.splice(index, 0, movedItem);
+                }
+                this.dragIndex = null;
+                this.dragOverIndex = null;
+            },
+            onDragEnd() {
+                this.dragIndex = null;
+                this.dragOverIndex = null;
+            },
+
             getEffectiveQty(item) {
                 if (!item.qty || item.qty <= 0) return 0;
                 const match = item.name.match(/不滿(\d+)/);
@@ -456,14 +494,6 @@
             },
             addItem() { this.form.items.push({ name: '', unit: '式', qty: 1, price: 0 }); },
             removeItem(idx) { if(this.form.items.length > 1) this.form.items.splice(idx, 1); },
-            moveItem(index, direction) {
-                const newIndex = index + direction;
-                if (newIndex >= 0 && newIndex < this.form.items.length) {
-                    const temp = this.form.items[index];
-                    this.form.items[index] = this.form.items[newIndex];
-                    this.form.items[newIndex] = temp;
-                }
-            },
             resetForm() {
                 if(confirm('確定要開新單嗎？目前內容將會清空。')) {
                     this.form = {
@@ -526,4 +556,3 @@
 
 </body>
 </html>
-
