@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (新增通風門, 拖曳排序, 群組小計)</title>
+    <title>興居室內裝修 - 報價系統 v26 (新增通風門, 拖曳排序, 群組小計無框線)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -53,7 +53,6 @@
                 font-weight: normal;
             }
             .print-text-black { color: #1f2937 !important; }
-            .print-border-black { border-color: #4b5563 !important; }
             .print-bg-transparent { background-color: transparent !important; }
         }
 
@@ -252,7 +251,7 @@
 
                         <template v-else>
                             
-                            <tr class="border-t-2 border-b border-blue-200 bg-blue-50/60 print-bg-transparent group transition-all duration-200"
+                            <tr class="border-b border-gray-200 bg-blue-50/60 print-bg-transparent group transition-all duration-200"
                                 :class="{'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
                                 draggable="true"
                                 @dragstart="onDragStart(index, $event)"
@@ -261,7 +260,7 @@
                                 @drop="onDrop(index)"
                                 @dragend="onDragEnd">
                                 
-                                <td class="p-2 text-center text-blue-600 print-text-black align-top pt-3 font-bold border-l-4 border-blue-400 print-border-black">
+                                <td class="p-2 text-center text-blue-600 print-text-black align-top pt-3 font-bold">
                                     <div class="web-view flex items-center justify-center gap-2">
                                         <i class="fas fa-folder-open text-blue-400 no-print"></i>
                                         <span class="cursor-move" title="拖曳整個群組">{{ index + 1 }}</span>
@@ -288,7 +287,7 @@
 
                             <tr v-for="(subItem, sIdx) in item.subItems" :key="'sub-'+sIdx" class="border-b border-gray-100 hover:bg-gray-50 group/sub print-bg-transparent">
                                 
-                                <td class="p-2 text-center text-gray-400 align-top pt-3 text-xs border-l-4 border-blue-400 print-border-black bg-gray-50/30 print-bg-transparent">
+                                <td class="p-2 text-center text-gray-400 align-top pt-3 text-xs bg-gray-50/30 print-bg-transparent">
                                     {{ index + 1 }}-{{ sIdx + 1 }}
                                 </td>
                                 
@@ -325,17 +324,17 @@
                                     </div>
                                 </td>
                                 
-                                <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-0 group-hover/sub:opacity-100 transition-opacity align-top pt-3 bg-gray-50/30 border-r-4 border-transparent">
+                                <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-0 group-hover/sub:opacity-100 transition-opacity align-top pt-3 bg-gray-50/30">
                                     <button @click="removeSubItem(index, sIdx)" class="action-btn text-red-300 hover:text-red-500" title="刪除此細項"><i class="fas fa-times"></i></button>
                                 </td>
                             </tr>
 
-                            <tr class="border-b-4 border-blue-200 bg-blue-50/60 print-bg-transparent print-border-black">
-                                <td class="border-l-4 border-blue-400 print-border-black"></td>
+                            <tr class="border-b border-gray-200 bg-blue-50/60 print-bg-transparent">
+                                <td></td>
                                 <td colspan="4" class="p-2 text-right text-blue-800 print-text-black font-bold pr-4">
                                     {{ item.name || '群組' }} 小計：
                                 </td>
-                                <td class="p-2 text-right text-blue-800 print-text-black font-bold border-t border-blue-200 print-border-black">
+                                <td class="p-2 text-right text-blue-800 print-text-black font-bold border-t border-gray-300">
                                     $ {{ formatNumber(getGroupSubtotal(item)) }}
                                 </td>
                                 <td class="p-2 text-center no-print">
