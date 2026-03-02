@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (新增通風門, 拖曳排序)</title>
+    <title>興居室內裝修 - 報價系統 v26 (新增通風門, 拖曳排序, 項目彙整)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -68,9 +68,10 @@
         .header-input { text-align: right; background: transparent; border-bottom: 1px dotted #a0aec0; outline: none; }
         .header-input:focus { border-bottom-color: #2563eb; }
         
-        /* 拖曳時的視覺回饋 */
+        /* 拖曳與選取時的視覺回饋 */
         .drag-over { border-top: 2px solid #3b82f6 !important; }
         .dragging { opacity: 0.4; background-color: #f8fafc; }
+        .row-checked { background-color: #eff6ff !important; border-color: #bfdbfe !important; }
     </style>
 </head>
 <body>
@@ -176,11 +177,11 @@
             </div>
         </div>
 
-        <div class="mb-8 flex-grow">
+        <div class="mb-4 flex-grow">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gray-800 text-white text-sm">
-                        <th class="p-2 w-10 text-center">#</th>
+                        <th class="p-2 w-16 text-center">#</th>
                         <th class="p-2 w-[50%]">項目說明</th>
                         <th class="p-2 w-16 text-center">單位</th>
                         <th class="p-2 w-16 text-center">數量</th>
@@ -192,7 +193,7 @@
                 <tbody class="text-sm">
                     <tr v-for="(item, index) in form.items" :key="index" 
                         class="border-b border-gray-200 hover:bg-gray-50 group transition-all duration-200"
-                        :class="{'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
+                        :class="{'row-checked': item.checked, 'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
                         draggable="true"
                         @dragstart="onDragStart(index, $event)"
                         @dragenter.prevent="onDragEnter(index)"
@@ -200,7 +201,12 @@
                         @drop="onDrop(index)"
                         @dragend="onDragEnd">
                         
-                        <td class="p-2 text-center text-gray-500 align-top pt-3 cursor-move">{{ index + 1 }}</td>
+                        <td class="p-2 text-center text-gray-500 align-top pt-3">
+                            <div class="flex items-center justify-center gap-2">
+                                <input type="checkbox" v-model="item.checked" class="no-print w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                <span class="cursor-move" title="拖曳排序">{{ index + 1 }}</span>
+                            </div>
+                        </td>
                         
                         <td class="p-2 align-top">
                             <div class="web-view">
@@ -241,12 +247,26 @@
                     </tr>
                 </tbody>
             </table>
+            
             <button @click="addItem" class="no-print mt-3 w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-500 hover:text-gray-700 rounded transition">
                 <i class="fas fa-plus"></i> 新增空白項目
             </button>
+
+            <div v-if="checkedItems.length > 0" class="no-print bg-blue-50 border border-blue-200 p-4 mt-4 rounded-lg flex flex-wrap items-center justify-between shadow-sm transition-all">
+                <div class="text-blue-800 text-sm mb-2 sm:mb-0 flex items-center">
+                    <i class="fas fa-check-square mr-2 text-blue-600 text-lg"></i> 
+                    <span>已勾選 <strong class="text-blue-700 text-lg mx-1">{{ checkedItems.length }}</strong> 項，金額小計：<strong class="text-blue-700 text-lg mx-1">$ {{ formatNumber(checkedSubtotal) }}</strong></span>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <input type="text" v-model="groupName" placeholder="輸入彙整名稱 (例如：客廳木作工程一式)" class="flex-1 sm:w-64 border border-blue-300 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <button @click="groupCheckedItems" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold transition-colors shadow-sm flex items-center whitespace-nowrap">
+                        <i class="fas fa-object-group mr-1"></i> 合併為單一項目
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="flex justify-end mb-12">
+        <div class="flex justify-end mb-12 mt-4">
             <div class="w-64 space-y-2">
                 <div class="flex justify-between text-gray-600"><span>小計：</span><span>$ {{ formatNumber(subtotal) }}</span></div>
                 <div class="flex justify-between items-center text-gray-600">
@@ -319,7 +339,7 @@
         { name: '浴室衛浴設備安裝', unit: '間', price: 5500, qty: 0 },
         { name: 'HCG和成牌基本款衛浴設備(馬桶CS130EJ+臉盆LF367SR+臉盆龍頭LF4330NE+沐浴龍頭BF3731+鏡子BA727)', unit: '套', price: 15000, qty: 0 },
         { name: '鋁三合一通風門框+門扇', unit: '樘', price: 25000, qty: 0 }
-    ];
+    ].map(item => ({ ...item, checked: false })); // 初始化加入 checked 屬性
 
     const DEFAULT_NOTES = `1. 收款方式：
 2. 單價皆為現金價不含稅，營業稅外加
@@ -347,6 +367,9 @@
                 // 拖曳狀態記錄
                 dragIndex: null,
                 dragOverIndex: null,
+                
+                // 彙整項目名稱
+                groupName: '',
 
                 form: {
                     id: Date.now(),
@@ -390,7 +413,16 @@
                 }, 0); 
             },
             taxAmount() { return Math.round(this.subtotal * this.form.taxRate); },
-            totalAmount() { return this.subtotal + this.taxAmount; }
+            totalAmount() { return this.subtotal + this.taxAmount; },
+            
+            // 計算已勾選的項目
+            checkedItems() {
+                return this.form.items.filter(item => item.checked);
+            },
+            // 計算勾選項目的總計金額
+            checkedSubtotal() {
+                return this.checkedItems.reduce((sum, item) => sum + (this.getEffectiveQty(item) * item.price), 0);
+            }
         },
         mounted() {
             const savedCompany = localStorage.getItem('xingju_company_v3');
@@ -407,11 +439,48 @@
             this.recordHistory(true);
         },
         methods: {
+            // 彙整合併功能
+            groupCheckedItems() {
+                if (!this.groupName.trim()) {
+                    alert('請輸入彙整項目的名稱！');
+                    return;
+                }
+                if (!confirm('確定要將勾選的項目合併為單一項目嗎？\n(注意：合併後原來的明細細項將會被替換)')) {
+                    return;
+                }
+
+                // 找到第一個勾選項目的索引，作為插入新項目的位置
+                const insertIndex = this.form.items.findIndex(item => item.checked);
+                
+                // 建立彙整後的新項目
+                const newItem = {
+                    name: this.groupName.trim(),
+                    unit: '式',
+                    qty: 1,
+                    price: this.checkedSubtotal,
+                    checked: false
+                };
+
+                // 過濾掉已勾選的項目 (移除舊項目)
+                this.form.items = this.form.items.filter(item => !item.checked);
+
+                // 在原本第一個勾選的位置插入新彙整項目
+                this.form.items.splice(insertIndex, 0, newItem);
+
+                // 清空輸入框
+                this.groupName = '';
+            },
+
             // 拖曳排序相關方法
             onDragStart(index, event) {
+                // 如果點擊的是 input (如 checkbox) 就不觸發拖曳
+                if (event.target.tagName.toLowerCase() === 'input') {
+                    event.preventDefault();
+                    return;
+                }
                 this.dragIndex = index;
                 event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('text/plain', index); // 兼容某些瀏覽器
+                event.dataTransfer.setData('text/plain', index);
             },
             onDragEnter(index) {
                 if (this.dragIndex !== null && this.dragIndex !== index) {
@@ -492,7 +561,7 @@
                     location.reload();
                 }
             },
-            addItem() { this.form.items.push({ name: '', unit: '式', qty: 1, price: 0 }); },
+            addItem() { this.form.items.push({ name: '', unit: '式', qty: 1, price: 0, checked: false }); },
             removeItem(idx) { if(this.form.items.length > 1) this.form.items.splice(idx, 1); },
             resetForm() {
                 if(confirm('確定要開新單嗎？目前內容將會清空。')) {
@@ -506,6 +575,7 @@
                         items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
                     };
                     this.selectedQuoteId = '';
+                    this.groupName = '';
                     this.history = [];
                     this.historyIndex = -1;
                     this.recordHistory(true);
@@ -545,6 +615,15 @@
                 const target = this.cloudQuotes.find(q => q.id === this.selectedQuoteId);
                 if(target) {
                     this.form = JSON.parse(JSON.stringify(target));
+                    
+                    // 確保載入舊檔案時，每個項目都有 checked 屬性，避免 Vue 抓不到
+                    if (this.form.items) {
+                        this.form.items.forEach(item => {
+                            if (typeof item.checked === 'undefined') item.checked = false;
+                        });
+                    }
+                    
+                    this.groupName = ''; // 切換表單時清空彙整輸入框
                     this.history = [];
                     this.historyIndex = -1;
                     this.recordHistory(true);
