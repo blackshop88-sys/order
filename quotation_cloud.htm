@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (新增通風門, 拖曳排序, 群組小計無框線)</title>
+    <title>興居室內裝修 - 報價系統 v26 (群組名稱含底色)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -251,7 +251,7 @@
 
                         <template v-else>
                             
-                            <tr class="border-b border-gray-200 bg-blue-50/60 print-bg-transparent group transition-all duration-200"
+                            <tr class="border-b border-gray-200 bg-gray-100 group transition-all duration-200"
                                 :class="{'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
                                 draggable="true"
                                 @dragstart="onDragStart(index, $event)"
