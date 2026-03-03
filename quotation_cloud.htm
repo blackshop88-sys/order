@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (含複製訂單功能)</title>
+    <title>興居室內裝修 - 報價系統 v26 (含複製訂單與群組細項拖曳功能)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -294,7 +294,15 @@
                             </td>
                         </tr>
 
-                        <tr v-for="(subItem, sIdx) in item.subItems" :key="'sub-'+sIdx" class="border-b border-gray-100 hover:bg-gray-50 group/sub print-bg-transparent">
+                        <tr v-for="(subItem, sIdx) in item.subItems" :key="'sub-'+sIdx" 
+                            class="border-b border-gray-100 hover:bg-gray-50 group/sub print-bg-transparent transition-all duration-200"
+                            :class="{'dragging': dragGroupIndex === index && dragSubIndex === sIdx, 'drag-over': dragGroupIndex === index && dragOverSubIndex === sIdx}"
+                            draggable="true"
+                            @dragstart.stop="onSubDragStart(index, sIdx, $event)"
+                            @dragenter.prevent.stop="onSubDragEnter(index, sIdx)"
+                            @dragover.prevent.stop
+                            @drop.stop="onSubDrop(index, sIdx, $event)"
+                            @dragend.stop="onSubDragEnd">
                             
                             <td class="p-2 text-center text-gray-400 align-top pt-3 text-xs bg-gray-50/30 print-bg-transparent">
                                 {{ index + 1 }}-{{ sIdx + 1 }}
@@ -334,6 +342,7 @@
                             </td>
                             
                             <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-0 group-hover/sub:opacity-100 transition-opacity align-top pt-3 bg-gray-50/30">
+                                <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳排序細項"><i class="fas fa-grip-lines"></i></span>
                                 <button @click="removeSubItem(index, sIdx)" class="action-btn text-red-300 hover:text-red-500" title="刪除此細項"><i class="fas fa-times"></i></button>
                             </td>
                         </tr>
@@ -470,9 +479,14 @@
                 isUndoing: false,
                 debounceTimer: null,
                 
-                // 拖曳狀態記錄
+                // 拖曳狀態記錄 (主項目)
                 dragIndex: null,
                 dragOverIndex: null,
+
+                // 拖曳狀態記錄 (子項目)
+                dragGroupIndex: null,
+                dragSubIndex: null,
+                dragOverSubIndex: null,
                 
                 // 彙整項目名稱
                 groupName: '',
@@ -621,7 +635,7 @@
                 }
             },
 
-            // === 拖曳相關方法 ===
+            // === (主項目) 拖曳相關方法 ===
             onDragStart(index, event) {
                 // 如果點擊到輸入框或打勾框就不觸發拖曳
                 if (event.target.tagName.toLowerCase() === 'input') {
@@ -649,6 +663,39 @@
             onDragEnd() {
                 this.dragIndex = null;
                 this.dragOverIndex = null;
+            },
+
+            // === (子細項) 拖曳相關方法 ===
+            onSubDragStart(groupIndex, subIndex, event) {
+                if (event.target.tagName.toLowerCase() === 'input') {
+                    event.preventDefault();
+                    return;
+                }
+                this.dragGroupIndex = groupIndex;
+                this.dragSubIndex = subIndex;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', subIndex);
+            },
+            onSubDragEnter(groupIndex, subIndex) {
+                // 確保是在同一個群組內拖曳
+                if (this.dragGroupIndex === groupIndex && this.dragSubIndex !== null && this.dragSubIndex !== subIndex) {
+                    this.dragOverSubIndex = subIndex;
+                }
+            },
+            onSubDrop(groupIndex, subIndex, event) {
+                if (this.dragGroupIndex === groupIndex && this.dragSubIndex !== null && this.dragSubIndex !== subIndex) {
+                    const group = this.form.items[groupIndex];
+                    const movedItem = group.subItems.splice(this.dragSubIndex, 1)[0];
+                    group.subItems.splice(subIndex, 0, movedItem);
+                }
+                this.dragGroupIndex = null;
+                this.dragSubIndex = null;
+                this.dragOverSubIndex = null;
+            },
+            onSubDragEnd() {
+                this.dragGroupIndex = null;
+                this.dragSubIndex = null;
+                this.dragOverSubIndex = null;
             },
 
             // === 基本資料計算與操作 ===
