@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (含複製訂單與群組細項拖曳功能)</title>
+    <title>興居室內裝修 - 報價系統 v26 (含列印防切斷修正)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -55,8 +55,8 @@
             .print-text-black { color: #1f2937 !important; }
             .print-bg-transparent { background-color: transparent !important; }
 
-            /* 強制群組不跨頁切斷 */
-            tbody.print-avoid-break {
+            /* 強制避免元素內部跨頁切斷 (群組、備註、簽名區塊適用) */
+            .print-avoid-break, tr {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }
@@ -381,7 +381,7 @@
             </div>
         </div>
 
-        <div class="flex justify-end mb-12 mt-4">
+        <div class="flex justify-end mb-12 mt-4 print-avoid-break">
             <div class="w-64 space-y-2">
                 <div class="flex justify-between text-gray-600"><span>總小計：</span><span class="whitespace-nowrap">$ {{ formatNumber(subtotal) }}</span></div>
                 <div class="flex justify-between items-center text-gray-600">
@@ -401,12 +401,12 @@
             </div>
         </div>
 
-        <div class="mb-12">
+        <div class="mb-12 print-avoid-break">
             <h4 class="font-bold text-gray-700 mb-2">備註條款：</h4>
             <textarea v-model="form.notes" rows="6" class="w-full text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-200"></textarea>
         </div>
 
-        <footer class="mt-auto pt-4 flex justify-between items-end">
+        <footer class="mt-auto pt-4 flex justify-between items-end print-avoid-break">
             <div class="w-1/2 flex flex-col items-center">
                  <div class="w-64 border-b-2 border-gray-400 h-10 mb-4"></div>
                  <span class="text-lg text-gray-700 font-bold">公司簽章</span>
