@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (金額不換行修正)</title>
+    <title>興居室內裝修 - 報價系統 v26 (含複製訂單功能)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -121,6 +121,10 @@
             <button @click="fetchCloudData" class="text-gray-300 hover:text-white" title="重整列表"><i class="fas fa-sync"></i></button>
             <div class="h-6 border-l border-gray-600 mx-1"></div>
             
+            <button @click="copyQuote" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm" title="複製目前訂單為新檔">
+                <i class="fas fa-copy"></i> 複製
+            </button>
+
             <button @click="resetForm" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm" title="載入預設項目清單">
                 <i class="fas fa-plus"></i> 新單
             </button>
@@ -728,6 +732,34 @@
                     this.recordHistory(true);
                 }
             },
+
+            // --- 新增的：複製訂單功能 ---
+            copyQuote() {
+                if(confirm('確定要複製目前的內容為一份「全新的訂單」嗎？')) {
+                    // 賦予一個全新的資料庫 ID
+                    this.form.id = Date.now();
+                    
+                    // 自動將日期壓成今天
+                    const todayStr = new Date().toISOString().slice(0,10);
+                    this.form.date = todayStr;
+                    
+                    // 自動產生新的報價單號前綴 (Q+日期)
+                    this.form.quoteNo = 'Q' + todayStr.replace(/-/g,'') + '-01';
+                    
+                    // 清除左上方「雲端舊檔」的下拉選取狀態，讓系統知道這已經是新單
+                    this.selectedQuoteId = '';
+                    
+                    // 提示使用者
+                    this.statusMsg = '已複製為新單！請修改後存檔';
+                    setTimeout(() => this.statusMsg = '', 3000);
+                    
+                    // 重置歷史紀錄，防止按「上一步」不小心退回到舊單的狀態
+                    this.history = [];
+                    this.historyIndex = -1;
+                    this.recordHistory(true);
+                }
+            },
+
             printQuote() { window.print(); },
             async saveToCloud() {
                 if(!this.apiUrl) return;
