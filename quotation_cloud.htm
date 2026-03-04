@@ -22,7 +22,7 @@
         .pdf-hint { display: none; }
 
         @media print {
-            /* 設定紙張邊距，建議列印時取消勾選「標頭與頁尾」以隱藏網址 */
+            /* 設定紙張邊距 */
             @page {
                 size: A4;
                 margin: 10mm 10mm 15mm 10mm; 
@@ -32,11 +32,12 @@
             .print-only-flex { display: flex !important; }
             body { background-color: white; }
             
-            /* 列印時自動縮放以適應 A4 紙張 */
+            /* 【關鍵修正】列印時必須取消 flex 排版，否則 Chrome 會無視分頁防切斷指令 */
             .page-container { 
+                display: block !important; 
                 box-shadow: none; 
                 margin: 0; 
-                padding: 0 0 20mm 0 !important; /* 增加底部內距，保留空間給固定頁尾，防止疊字 */
+                padding: 0 0 20mm 0 !important; 
                 width: 100% !important;   
                 max-width: none !important;
             }
@@ -61,11 +62,20 @@
             .print-text-black { color: #1f2937 !important; }
             .print-bg-transparent { background-color: transparent !important; }
 
-            /* 強制避免元素內部跨頁切斷 */
-            .print-avoid-break, tr {
+            /* 【關鍵修正】強制避免元素內部跨頁切斷 */
+            .print-avoid-break {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                -webkit-column-break-inside: avoid !important;
             }
+            
+            /* 針對表格結構強化防切斷：允許在群組間斷行，但不允許群組內斷行 */
+            table { page-break-inside: auto !important; }
+            tbody { 
+                page-break-inside: avoid !important; 
+                break-inside: avoid !important; 
+            }
+            tr { page-break-inside: avoid !important; break-inside: avoid !important; }
 
             /* 每一頁底部的固定資訊 */
             .print-page-footer {
@@ -77,7 +87,7 @@
                 justify-content: space-between;
                 font-size: 12px;
                 color: #555;
-                background-color: white !important; /* 加上白底避免被表格內容透過去 */
+                background-color: white !important;
                 border-top: 1px solid #ddd;
                 padding-top: 3mm;
                 z-index: 50;
@@ -92,7 +102,7 @@
             margin: 20px auto; 
             padding: 15mm 20mm 25mm 20mm;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            display: flex;
+            display: flex; /* 網頁檢視維持 Flex 確保撐開版面 */
             flex-direction: column;
             position: relative;
         }
@@ -432,7 +442,7 @@
             </div>
         </div>
 
-        <div class="flex justify-end mb-12 mt-4 print-avoid-break">
+        <div class="flex justify-end mb-8 mt-4 print-avoid-break">
             <div class="w-64 space-y-2">
                 <div class="flex justify-between text-gray-600"><span>總小計：</span><span class="whitespace-nowrap">$ {{ formatNumber(subtotal) }}</span></div>
                 <div class="flex justify-between items-center text-gray-600">
@@ -452,22 +462,24 @@
             </div>
         </div>
 
-        <div class="mb-12 print-avoid-break">
-            <h4 class="font-bold text-gray-700 mb-2">備註條款：</h4>
-            <textarea v-model="form.notes" rows="6" class="w-full text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-200"></textarea>
-        </div>
+        <div class="print-avoid-break mt-8">
+            <div class="mb-12">
+                <h4 class="font-bold text-gray-700 mb-2">備註條款：</h4>
+                <textarea v-model="form.notes" rows="6" class="w-full text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-200"></textarea>
+            </div>
 
-        <footer class="mt-auto pt-4 flex justify-between items-end print-avoid-break">
-            <div class="w-1/2 flex flex-col items-center">
-                 <div class="w-64 border-b-2 border-gray-400 h-10 mb-4"></div>
-                 <span class="text-lg text-gray-700 font-bold">公司簽章</span>
-            </div>
-            
-            <div class="w-1/2 flex flex-col items-center">
-                 <div class="w-64 border-b-2 border-gray-400 h-10 mb-4"></div>
-                 <span class="text-lg text-gray-700 font-bold">業主確認合約簽名</span>
-            </div>
-        </footer>
+            <footer class="flex justify-between items-end pt-4">
+                <div class="w-1/2 flex flex-col items-center">
+                     <div class="w-64 border-b-2 border-gray-400 h-10 mb-4"></div>
+                     <span class="text-lg text-gray-700 font-bold">公司簽章</span>
+                </div>
+                
+                <div class="w-1/2 flex flex-col items-center">
+                     <div class="w-64 border-b-2 border-gray-400 h-10 mb-4"></div>
+                     <span class="text-lg text-gray-700 font-bold">業主確認合約簽名</span>
+                </div>
+            </footer>
+        </div>
         
         <div class="mt-8 text-center text-xs text-gray-400 pt-4 no-print">興居室內裝修設計工程有限公司 &copy; 2026</div>
 
@@ -553,11 +565,11 @@
                     clientPhone: '',
                     projectAddress: '',
                     projectDuration: '',
-                    showProjectDuration: true, // 控制工期是否顯示
+                    showProjectDuration: true, 
                     quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
                     date: new Date().toISOString().slice(0,10),
                     validity: '15天',
-                    taxRate: 0.05, // 修改：預設為含稅(5%)
+                    taxRate: 0.05, 
                     notes: DEFAULT_NOTES,
                     items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
                 }
@@ -583,7 +595,6 @@
             }
         },
         computed: {
-            // 自動擷取所有群組與其小計金額 (第一頁摘要使用)
             groupSummaries() {
                 return this.form.items
                     .filter(item => item.isGroup)
@@ -592,7 +603,6 @@
                         subtotal: this.getGroupSubtotal(group)
                     }));
             },
-            // 最下方總計（包含獨立項目 + 各群組小計）
             subtotal() { 
                 return this.form.items.reduce((sum, item) => {
                     if (item.isGroup) {
@@ -605,11 +615,9 @@
             taxAmount() { return Math.round(this.subtotal * this.form.taxRate); },
             totalAmount() { return this.subtotal + this.taxAmount; },
             
-            // 抓出目前勾選的項目 (只有獨立項目能被勾選)
             checkedItems() {
                 return this.form.items.filter(item => !item.isGroup && item.checked);
             },
-            // 勾選項目的預覽加總
             checkedSubtotal() {
                 return this.checkedItems.reduce((sum, item) => sum + (this.getEffectiveQty(item) * item.price), 0);
             }
@@ -629,15 +637,10 @@
             this.recordHistory(true);
         },
         methods: {
-            // === 群組小計相關功能 ===
-            
-            // 計算單一整個群組的小計
             getGroupSubtotal(group) {
                 if (!group.subItems) return 0;
                 return group.subItems.reduce((sum, item) => sum + (this.getEffectiveQty(item) * item.price), 0);
             },
-
-            // 建立群組
             groupCheckedItems() {
                 if (!this.groupName.trim()) {
                     alert('請輸入群組項目的名稱！');
@@ -667,8 +670,6 @@
                 this.form.items.splice(insertIndex, 0, newGroup);
                 this.groupName = ''; 
             },
-
-            // 解散群組
             ungroupItem(index) {
                 const group = this.form.items[index];
                 if (confirm(`確定要解散「${group.name}」群組嗎？(裡面的細項會恢復為獨立項目)`)) {
@@ -676,13 +677,11 @@
                     this.form.items.splice(index, 1, ...subItemsToRestore);
                 }
             },
-
             addSubItem(groupIndex) {
                 this.form.items[groupIndex].subItems.push({
                     name: '', unit: '式', qty: 1, price: 0
                 });
             },
-
             removeSubItem(groupIndex, subIndex) {
                 const group = this.form.items[groupIndex];
                 group.subItems.splice(subIndex, 1);
@@ -690,8 +689,6 @@
                     this.form.items.splice(groupIndex, 1);
                 }
             },
-
-            // === (主項目) 拖曳相關方法 ===
             onDragStart(index, event) {
                 if (event.target.tagName.toLowerCase() === 'input') {
                     event.preventDefault();
@@ -719,8 +716,6 @@
                 this.dragIndex = null;
                 this.dragOverIndex = null;
             },
-
-            // === (子細項) 拖曳相關方法 ===
             onSubDragStart(groupIndex, subIndex, event) {
                 if (event.target.tagName.toLowerCase() === 'input') {
                     event.preventDefault();
@@ -751,8 +746,6 @@
                 this.dragSubIndex = null;
                 this.dragOverSubIndex = null;
             },
-
-            // === 基本資料計算與操作 ===
             getEffectiveQty(item) {
                 if (!item.qty || item.qty <= 0) return 0;
                 const match = item.name.match(/不滿(\d+)/);
@@ -822,7 +815,7 @@
                         clientName: '', clientPhone: '', projectAddress: '',
                         projectDuration: '', showProjectDuration: true,
                         quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
-                        date: new Date().toISOString().slice(0,10), validity: '15天', taxRate: 0.05, // 修改：開新單時預設為含稅
+                        date: new Date().toISOString().slice(0,10), validity: '15天', taxRate: 0.05,
                         notes: DEFAULT_NOTES,
                         items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
                     };
@@ -833,7 +826,6 @@
                     this.recordHistory(true);
                 }
             },
-
             copyQuote() {
                 if(confirm('確定要複製目前的內容為一份「全新的訂單」嗎？')) {
                     this.form.id = Date.now();
@@ -848,7 +840,6 @@
                     this.recordHistory(true);
                 }
             },
-
             printQuote() { window.print(); },
             async saveToCloud() {
                 if(!this.apiUrl) return;
