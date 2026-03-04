@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>興居室內裝修 - 報價系統 v26 (含列印防切斷修正)</title>
+    <title>工程報價單</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,6 +22,11 @@
         .pdf-hint { display: none; }
 
         @media print {
+            /* 設定紙張邊距，建議列印時取消勾選「標頭與頁尾」以隱藏網址 */
+            @page {
+                size: A4;
+                margin: 10mm 10mm 15mm 10mm; 
+            }
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             .print-only-flex { display: flex !important; }
@@ -31,7 +36,7 @@
             .page-container { 
                 box-shadow: none; 
                 margin: 0; 
-                padding: 10mm 10mm 25mm 10mm !important; /* 底部預留空間給固定頁尾 */
+                padding: 0 !important; 
                 width: 100% !important;   
                 max-width: none !important;
             }
@@ -68,13 +73,13 @@
                 bottom: 0;
                 left: 0;
                 right: 0;
-                padding: 0 15mm 10mm 15mm;
+                padding: 0 5mm 5mm 5mm;
                 justify-content: space-between;
                 font-size: 12px;
                 color: #555;
                 background: transparent;
                 border-top: 1px solid #ddd;
-                padding-top: 5mm;
+                padding-top: 3mm;
             }
         }
 
@@ -84,7 +89,7 @@
             min-height: 297mm; 
             background: white; 
             margin: 20px auto; 
-            padding: 15mm 20mm;
+            padding: 15mm 20mm 25mm 20mm;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
@@ -212,12 +217,12 @@
             </div>
         </div>
 
-        <div v-if="groupSummaries.length > 0" class="mb-6 p-4 rounded border-2 border-gray-800 bg-white print-avoid-break">
-            <h3 class="font-bold text-gray-800 border-b border-gray-300 mb-3 pb-2 text-base">工程群組摘要</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
-                <div v-for="(group, idx) in groupSummaries" :key="idx" class="flex justify-between items-center text-sm border-b border-dotted border-gray-300 pb-1">
-                    <span class="text-gray-700 font-medium">{{ group.name || '未命名群組' }}</span>
-                    <span class="text-gray-900 font-bold">$ {{ formatNumber(group.subtotal) }}</span>
+        <div v-if="groupSummaries.length > 0" class="mb-8 p-6 rounded-lg border-2 border-gray-800 bg-white print-avoid-break shadow-sm">
+            <h3 class="font-bold text-gray-800 border-b-2 border-gray-800 mb-4 pb-2 text-xl tracking-widest">工程群組摘要</h3>
+            <div class="flex flex-col space-y-4">
+                <div v-for="(group, idx) in groupSummaries" :key="idx" class="flex justify-between items-end border-b border-dotted border-gray-400 pb-2 px-2 hover:bg-gray-50 transition-colors">
+                    <span class="text-gray-800 font-bold text-lg tracking-wide">{{ group.name || '未命名群組' }}</span>
+                    <span class="text-gray-900 font-bold text-xl tracking-wider">$ {{ formatNumber(group.subtotal) }}</span>
                 </div>
             </div>
         </div>
@@ -456,7 +461,6 @@
         <div class="print-page-footer print-only-flex hidden">
             <span>興居室內裝修設計工程有限公司</span>
             <span>報價單號：{{ form.quoteNo }}</span>
-            <span>備註：頁碼顯示請開啟列印設定之「標頭與頁尾」</span>
         </div>
     </div>
 </div>
