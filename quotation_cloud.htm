@@ -36,7 +36,7 @@
             .page-container { 
                 box-shadow: none; 
                 margin: 0; 
-                padding: 0 !important; 
+                padding: 0 0 20mm 0 !important; /* 增加底部內距，保留空間給固定頁尾，防止疊字 */
                 width: 100% !important;   
                 max-width: none !important;
             }
@@ -77,9 +77,10 @@
                 justify-content: space-between;
                 font-size: 12px;
                 color: #555;
-                background: transparent;
+                background-color: white !important; /* 加上白底避免被表格內容透過去 */
                 border-top: 1px solid #ddd;
                 padding-top: 3mm;
+                z-index: 50;
             }
         }
 
@@ -218,11 +219,21 @@
         </div>
 
         <div v-if="groupSummaries.length > 0" class="mb-8 p-6 rounded-lg border-2 border-gray-800 bg-white print-avoid-break shadow-sm">
-            <h3 class="font-bold text-gray-800 border-b-2 border-gray-800 mb-4 pb-2 text-xl tracking-widest">工程群組摘要</h3>
+            <h3 class="font-bold text-gray-800 border-b-2 border-gray-800 mb-4 pb-2 text-xl tracking-widest">各項工程摘要</h3>
             <div class="flex flex-col space-y-4">
                 <div v-for="(group, idx) in groupSummaries" :key="idx" class="flex justify-between items-end border-b border-dotted border-gray-400 pb-2 px-2 hover:bg-gray-50 transition-colors">
                     <span class="text-gray-800 font-bold text-lg tracking-wide">{{ group.name || '未命名群組' }}</span>
                     <span class="text-gray-900 font-bold text-xl tracking-wider">$ {{ formatNumber(group.subtotal) }}</span>
+                </div>
+            </div>
+            <div class="flex flex-col space-y-4 mt-4 pt-4 border-t border-gray-300">
+                <div class="flex justify-between items-end border-b border-dotted border-gray-400 pb-2 px-2 hover:bg-gray-50 transition-colors">
+                    <span class="text-gray-800 font-bold text-lg tracking-wide">稅額 <span class="text-base text-gray-600 font-normal ml-1" v-if="form.taxRate > 0">(5%)</span></span>
+                    <span class="text-gray-900 font-bold text-xl tracking-wider">$ {{ formatNumber(taxAmount) }}</span>
+                </div>
+                <div class="flex justify-between items-end pb-2 px-2 hover:bg-gray-50 transition-colors">
+                    <span class="text-gray-900 font-bold text-xl tracking-wide">稅後總價</span>
+                    <span class="text-gray-900 font-bold text-2xl tracking-wider text-blue-800">$ {{ formatNumber(totalAmount) }}</span>
                 </div>
             </div>
         </div>
@@ -426,8 +437,8 @@
                     <div class="flex items-center">
                         <span>稅金：</span>
                         <select v-model="form.taxRate" class="ml-2 border rounded bg-transparent no-print text-xs">
-                            <option value="0">未稅</option>
-                            <option value="0.05">含稅(5%)</option>
+                            <option :value="0">未稅</option>
+                            <option :value="0.05">含稅(5%)</option>
                         </select>
                         <span class="ml-2 print-only text-xs" v-if="form.taxRate > 0">5%</span>
                     </div>
@@ -544,7 +555,7 @@
                     quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
                     date: new Date().toISOString().slice(0,10),
                     validity: '15天',
-                    taxRate: 0,
+                    taxRate: 0.05, // 預設改為含稅(5%)
                     notes: DEFAULT_NOTES,
                     items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
                 }
@@ -809,7 +820,7 @@
                         clientName: '', clientPhone: '', projectAddress: '',
                         projectDuration: '', showProjectDuration: true,
                         quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
-                        date: new Date().toISOString().slice(0,10), validity: '15天', taxRate: 0,
+                        date: new Date().toISOString().slice(0,10), validity: '15天', taxRate: 0.05, // 開新單時也預設為含稅
                         notes: DEFAULT_NOTES,
                         items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
                     };
