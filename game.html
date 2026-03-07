@@ -3,32 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>好酪 Hello Panna - 手機觸控版</title>
+    <title>好酪 Hello Panna - 全螢幕實境版</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <style>
         body { 
             margin: 0; 
             padding: 0;
-            background-color: #Fdf6e3; 
+            background-color: #2b2b2b; /* 外圍底色改深，凸顯遊戲區 */
             font-family: '微軟正黑體', sans-serif;
-            overflow: hidden; /* 隱藏手機瀏覽器的捲軸 */
+            overflow: hidden; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
         canvas {
             display: block;
             margin: 0 auto;
         }
+        /* 全螢幕按鈕的 HTML 樣式 */
+        #fullscreen-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 10px 15px;
+            background-color: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        #fullscreen-btn:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
 
+<button id="fullscreen-btn" onclick="toggleFullScreen()">📱 進入全螢幕</button>
+
 <script>
+// 全螢幕 API 邏輯
+function toggleFullScreen() {
+    let doc = window.document;
+    let docEl = doc.documentElement;
+    let requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+    let cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+    if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+        requestFullScreen.call(docEl).catch(err => {
+            alert(`無法進入全螢幕: ${err.message}`);
+        });
+        document.getElementById('fullscreen-btn').innerText = '退出全螢幕';
+    } else {
+        cancelFullScreen.call(doc);
+        document.getElementById('fullscreen-btn').innerText = '📱 進入全螢幕';
+    }
+}
+
 const config = {
     type: Phaser.AUTO,
-    width: 900,
+    width: 1100, // 拉寬總畫布，容納左右控制區
     height: 650,
-    backgroundColor: '#FAF0E6', 
+    backgroundColor: '#37474F', // 左右兩邊控制區的底色
     scale: {
-        // 自動縮放以適應螢幕，並保持比例置中
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
@@ -45,6 +87,7 @@ const config = {
 
 const game = new Phaser.Game(config);
 
+// 遊戲變數
 let player, dog, obstacles;
 let cursors, spacebar;
 let score = 0;
@@ -53,7 +96,13 @@ let fridgeTimer = 0;
 let fridgeState = 'empty'; 
 let currentOrder = null;
 
-// 觸控控制變數
+// NPC 客人變數
+let customerNPC, timerBarBg, timerBarFill, orderBubble;
+let customerTimer = 0;
+const CUSTOMER_MAX_TIME = 30000; // 客人耐心值 (30秒)
+let isCustomerActive = false;
+
+// 觸控變數
 let actionButton;
 let isJoyStickActive = false;
 let joystickBase, joystickStick;
@@ -75,42 +124,65 @@ const MENU = [
 function preload() {}
 
 function create() {
-    // 為了確保所有圖形都在正確圖層，建立一個場景容器
+    // === 設定廚房區域 (X: 200 到 X: 900) ===
+    this.physics.world.setBounds(200, 0, 700, 650); 
+    
+    // 繪製廚房地板
     const graphics = this.add.graphics();
+    graphics.fillStyle(0xFAF0E6, 1);
+    graphics.fillRect(200, 0, 700, 650);
+    
     graphics.lineStyle(2, 0xE0D4C8, 1);
-    for(let i=0; i<900; i+=50) {
+    for(let i=200; i<900; i+=50) {
         graphics.moveTo(i, 0); graphics.lineTo(i, 650);
-        graphics.moveTo(0, i); graphics.lineTo(900, i);
+    }
+    for(let i=0; i<650; i+=50) {
+        graphics.moveTo(200, i); graphics.lineTo(900, i);
     }
     graphics.strokePath();
 
+    // 繪製左右控制區的視覺分隔
+    this.add.rectangle(100, 325, 200, 650, 0x263238);
+    this.add.rectangle(1000, 325, 200, 650, 0x263238);
+    this.add.text(100, 600, '方向控制區', { fontSize: '20px', fill: '#546E7A' }).setOrigin(0.5);
+    this.add.text(1000, 600, '動作控制區', { fontSize: '20px', fill: '#546E7A' }).setOrigin(0.5);
+
+    // === 建立靜態障礙物 ===
     obstacles = this.physics.add.staticGroup();
-    let island = this.add.rectangle(400, 350, 350, 70, 0xB0BEC5);
-    this.add.text(320, 340, '🗄️ 不鏽鋼中島', { fontSize: '20px', fill: '#37474F', fontStyle: 'bold' });
+    let island = this.add.rectangle(550, 350, 250, 70, 0xB0BEC5);
+    this.add.text(490, 340, '🗄️ 不鏽鋼中島', { fontSize: '18px', fill: '#37474F', fontStyle: 'bold' });
     obstacles.add(this.physics.add.existing(island, true));
 
-    let wall = this.add.rectangle(620, 480, 40, 200, 0x90A4AE);
+    let wall = this.add.rectangle(720, 480, 40, 200, 0x90A4AE);
     obstacles.add(this.physics.add.existing(wall, true));
 
+    // === 建立工作站 ===
     this.stations = {
-        base: this.add.rectangle(150, 550, 180, 100, 0xBBDEFB).setInteractive(),
-        flavor: this.add.rectangle(400, 550, 180, 100, 0xC8E6C9).setInteractive(),
-        fridge: this.add.rectangle(750, 550, 180, 100, 0xE1BEE7).setInteractive(),
-        counter: this.add.rectangle(400, 110, 400, 100, 0xFFE082).setInteractive()
+        base: this.add.rectangle(300, 550, 150, 100, 0xBBDEFB).setInteractive(),
+        flavor: this.add.rectangle(550, 550, 150, 100, 0xC8E6C9).setInteractive(),
+        fridge: this.add.rectangle(800, 550, 150, 100, 0xE1BEE7).setInteractive(),
+        counter: this.add.rectangle(550, 110, 350, 100, 0xFFE082).setInteractive()
     };
 
-    this.add.text(90, 535, '🥛 拿取基底', { fontSize: '22px', fill: '#1565C0', fontStyle: 'bold' });
-    this.add.text(340, 535, '🍓 調配口味', { fontSize: '22px', fill: '#2E7D32', fontStyle: 'bold' });
-    this.fridgeText = this.add.text(690, 535, '❄️ 冷藏定型', { fontSize: '22px', fill: '#6A1B9A', fontStyle: 'bold' });
-    this.add.text(330, 95, '🛎️ 出餐結帳區', { fontSize: '24px', fill: '#E65100', fontStyle: 'bold' });
+    this.add.text(250, 535, '🥛 基底', { fontSize: '20px', fill: '#1565C0', fontStyle: 'bold' });
+    this.add.text(500, 535, '🍓 調配', { fontSize: '20px', fill: '#2E7D32', fontStyle: 'bold' });
+    this.fridgeText = this.add.text(750, 535, '❄️ 冷藏', { fontSize: '20px', fill: '#6A1B9A', fontStyle: 'bold' });
+    this.add.text(480, 95, '🛎️ 出餐結帳區', { fontSize: '24px', fill: '#E65100', fontStyle: 'bold' });
 
-    player = this.add.text(400, 220, '👩‍🍳', { fontSize: '45px' }).setOrigin(0.5);
+    // === NPC 客人與 UI (初始化隱藏) ===
+    customerNPC = this.add.text(550, 50, '🧍', { fontSize: '50px' }).setOrigin(0.5).setVisible(false);
+    orderBubble = this.add.text(550, -10, '', { fontSize: '20px', fill: '#000', backgroundColor: '#FFF', padding: {x:10, y:5} }).setOrigin(0.5).setVisible(false);
+    timerBarBg = this.add.rectangle(550, 10, 100, 10, 0x000000).setOrigin(0.5).setVisible(false);
+    timerBarFill = this.add.rectangle(500, 5, 100, 10, 0x4CAF50).setOrigin(0, 0).setVisible(false); // 左上角對齊方便縮放
+
+    // === 建立玩家與狗狗 ===
+    player = this.add.text(550, 220, '👩‍🍳', { fontSize: '45px' }).setOrigin(0.5);
     this.physics.add.existing(player);
     player.body.setCollideWorldBounds(true);
     player.body.setSize(35, 35); 
     this.tweens.add({ targets: player, scaleY: 1.1, duration: 500, yoyo: true, repeat: -1 });
 
-    dog = this.add.text(100, 250, '🐶', { fontSize: '35px' }).setOrigin(0.5);
+    dog = this.add.text(350, 250, '🐶', { fontSize: '35px' }).setOrigin(0.5);
     this.physics.add.existing(dog);
     dog.body.setCollideWorldBounds(true);
     dog.body.setVelocity(180, 180); 
@@ -121,15 +193,13 @@ function create() {
     this.physics.add.collider(dog, obstacles);
     this.physics.add.overlap(player, dog, handleDogCollision, null, this);
 
-    const uiBg = this.add.rectangle(450, 30, 900, 60, 0x3E2723, 0.9).setScrollFactor(0);
-    this.scoreText = this.add.text(20, 15, '💰 營業額: $0', { fontSize: '24px', fill: '#FFF' }).setScrollFactor(0);
-    this.heldText = this.add.text(280, 15, '🤲 手上: 無', { fontSize: '24px', fill: '#FFD54F' }).setScrollFactor(0);
-    this.orderText = this.add.text(580, 15, '🧾 等待顧客...', { fontSize: '24px', fill: '#FFF' }).setScrollFactor(0);
+    // === 頂部 UI 面板 ===
+    const uiBg = this.add.rectangle(550, 30, 700, 60, 0x3E2723, 0.9);
+    this.scoreText = this.add.text(220, 15, '💰 營業額: $0', { fontSize: '22px', fill: '#FFF' });
+    this.heldText = this.add.text(480, 15, '🤲 手上: 無', { fontSize: '22px', fill: '#FFD54F' });
 
-    // === 新增：手機觸控 UI (固定在畫面上方) ===
     createMobileUI.call(this);
 
-    // 鍵盤輸入 (保留給電腦測試用)
     cursors = this.input.keyboard.createCursorKeys();
     spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
@@ -137,26 +207,23 @@ function create() {
 }
 
 function createMobileUI() {
-    // 1. 互動按鈕 (右手) - 放在螢幕右下角
-    actionButton = this.add.circle(800, 550, 60, 0xFF5722, 0.8).setScrollFactor(0).setInteractive();
-    this.add.text(765, 535, '動作', { fontSize: '28px', fill: '#FFF', fontStyle: 'bold' }).setScrollFactor(0);
+    // 右手動作按鈕 (置於右側控制區)
+    actionButton = this.add.circle(1000, 500, 70, 0xFF5722, 0.9).setInteractive();
+    this.add.text(965, 485, '動作', { fontSize: '32px', fill: '#FFF', fontStyle: 'bold' });
     
-    // 按下按鈕時觸發互動
     actionButton.on('pointerdown', () => {
-        actionButton.setAlpha(0.5); // 按下視覺回饋
+        actionButton.setAlpha(0.6);
         interactWithStation.call(this);
     });
-    actionButton.on('pointerup', () => actionButton.setAlpha(0.8));
-    actionButton.on('pointerout', () => actionButton.setAlpha(0.8));
+    actionButton.on('pointerup', () => actionButton.setAlpha(0.9));
+    actionButton.on('pointerout', () => actionButton.setAlpha(0.9));
 
-    // 2. 虛擬搖桿 (左手) - 隱形接收區
-    joystickBase = this.add.circle(150, 550, 70, 0x000000, 0.2).setScrollFactor(0).setVisible(false);
-    joystickStick = this.add.circle(150, 550, 35, 0x000000, 0.5).setScrollFactor(0).setVisible(false);
+    // 左手虛擬搖桿 (置於左側控制區)
+    joystickBase = this.add.circle(100, 500, 80, 0x90A4AE, 0.3).setVisible(false);
+    joystickStick = this.add.circle(100, 500, 40, 0xCFD8DC, 0.7).setVisible(false);
 
-    // 監聽畫面的觸控事件
     this.input.on('pointerdown', function (pointer) {
-        // 如果點擊在畫面左半部 (搖桿區)
-        if (pointer.x < 450) {
+        if (pointer.x < 200) { // 限制在左側 200px 內才能觸發
             isJoyStickActive = true;
             joystickBase.setPosition(pointer.x, pointer.y).setVisible(true);
             joystickStick.setPosition(pointer.x, pointer.y).setVisible(true);
@@ -164,34 +231,26 @@ function createMobileUI() {
     }, this);
 
     this.input.on('pointermove', function (pointer) {
-        if (isJoyStickActive && pointer.isDown && pointer.x < 450) {
-            // 計算手指與搖桿中心的距離與角度
+        if (isJoyStickActive && pointer.isDown && pointer.x < 300) {
             let dx = pointer.x - joystickBase.x;
             let dy = pointer.y - joystickBase.y;
             let angle = Math.atan2(dy, dx);
-            let distance = Math.min(70, Math.sqrt(dx * dx + dy * dy)); // 限制搖桿推動範圍
+            let distance = Math.min(80, Math.sqrt(dx * dx + dy * dy));
 
-            // 移動搖桿中心點
             joystickStick.setPosition(
                 joystickBase.x + Math.cos(angle) * distance,
                 joystickBase.y + Math.sin(angle) * distance
             );
-
-            // 轉換為正規化向量 (-1 到 1 之間)
             joyVector.set(Math.cos(angle), Math.sin(angle));
-            
-            // 如果推動距離太小，不移動 (死區設定)
             if (distance < 10) joyVector.set(0, 0);
         }
     }, this);
 
-    this.input.on('pointerup', function (pointer) {
-        if (pointer.x < 450 || isJoyStickActive) {
-            isJoyStickActive = false;
-            joystickBase.setVisible(false);
-            joystickStick.setVisible(false);
-            joyVector.set(0, 0);
-        }
+    this.input.on('pointerup', function () {
+        isJoyStickActive = false;
+        joystickBase.setVisible(false);
+        joystickStick.setVisible(false);
+        joyVector.set(0, 0);
     }, this);
 }
 
@@ -199,31 +258,50 @@ function update(time, delta) {
     player.body.setVelocity(0);
     const speed = 250; 
     
-    // 優先使用觸控搖桿移動
     if (isJoyStickActive && (joyVector.x !== 0 || joyVector.y !== 0)) {
         player.body.setVelocityX(joyVector.x * speed);
         player.body.setVelocityY(joyVector.y * speed);
-    } 
-    // 備用：鍵盤移動
-    else {
+    } else {
         if (cursors.left.isDown) player.body.setVelocityX(-speed);
         else if (cursors.right.isDown) player.body.setVelocityX(speed);
-        
         if (cursors.up.isDown) player.body.setVelocityY(-speed);
         else if (cursors.down.isDown) player.body.setVelocityY(speed);
     }
 
-    if (Phaser.Input.Keyboard.JustDown(spacebar)) {
-        interactWithStation.call(this);
-    }
+    if (Phaser.Input.Keyboard.JustDown(spacebar)) interactWithStation.call(this);
 
+    // 冰箱邏輯
     if (fridgeState === 'cooling') {
         fridgeTimer -= delta;
-        this.fridgeText.setText(`❄️ 凝固中... ${Math.ceil(fridgeTimer/1000)}s`);
+        this.fridgeText.setText(`❄️ 凝固...${Math.ceil(fridgeTimer/1000)}s`);
         if (fridgeTimer <= 0) {
             fridgeState = 'ready';
             this.fridgeText.setText('✨ 奶酪完成！');
             this.fridgeText.setColor('#D50000');
+        }
+    }
+
+    // 客人倒數計時邏輯
+    if (isCustomerActive) {
+        customerTimer -= delta;
+        let progress = customerTimer / CUSTOMER_MAX_TIME;
+        
+        // 更新血條寬度
+        timerBarFill.width = 100 * progress;
+        
+        // 隨時間改變顏色
+        if (progress > 0.5) timerBarFill.fillColor = 0x4CAF50; // 綠色
+        else if (progress > 0.2) timerBarFill.fillColor = 0xFFEB3B; // 黃色
+        else timerBarFill.fillColor = 0xF44336; // 紅色
+
+        // 時間到！客人氣走
+        if (customerTimer <= 0) {
+            isCustomerActive = false;
+            customerNPC.setText('💢');
+            showFloatText.call(this, customerNPC.x, customerNPC.y - 30, '等太久了！不買了！', '#F44336');
+            
+            // 延遲1.5秒後產生新客人
+            this.time.delayedCall(1500, generateOrder, [], this);
         }
     }
 }
@@ -252,12 +330,20 @@ function interactWithStation() {
         }
     }
     else if (Phaser.Math.Distance.Between(px, py, this.stations.counter.x, this.stations.counter.y) < dist + 60) {
-        if (heldItem === `成品 (${currentOrder.name})`) {
+        if (heldItem === `成品 (${currentOrder.name})` && isCustomerActive) {
+            // 結帳成功
             score += currentOrder.price;
             this.scoreText.setText(`💰 營業額: $${score}`);
             updateHeldItem.call(this, null);
-            showFloatText.call(this, px, py - 30, `+$${currentOrder.price}`, '#4CAF50');
-            generateOrder.call(this);
+            
+            // 客人開心離開的動畫
+            isCustomerActive = false;
+            customerNPC.setText('😍');
+            showFloatText.call(this, customerNPC.x, customerNPC.y - 30, `+$${currentOrder.price} 謝謝光臨！`, '#4CAF50');
+            
+            this.time.delayedCall(1000, generateOrder, [], this);
+        } else if (heldItem && isCustomerActive) {
+            showFloatText.call(this, player.x, player.y - 30, '口味不對喔！', '#F44336');
         }
     }
 }
@@ -268,8 +354,23 @@ function updateHeldItem(itemName) {
 }
 
 function generateOrder() {
+    // 隨機抽口味
     currentOrder = MENU[Math.floor(Math.random() * MENU.length)];
-    this.orderText.setText(`🧾 訂單: ${currentOrder.name} ($${currentOrder.price})`);
+    
+    // 顯示客人與 UI
+    customerNPC.setText('🧍').setVisible(true);
+    orderBubble.setText(`想吃: ${currentOrder.name}`).setVisible(true);
+    timerBarBg.setVisible(true);
+    timerBarFill.width = 100;
+    timerBarFill.setVisible(true);
+    
+    // 重置倒數計時
+    customerTimer = CUSTOMER_MAX_TIME;
+    isCustomerActive = true;
+
+    // 客人出現的小動畫
+    customerNPC.y = 80;
+    this.tweens.add({ targets: customerNPC, y: 50, duration: 300, ease: 'Bounce.easeOut' });
 }
 
 function handleDogCollision() {
@@ -281,7 +382,7 @@ function handleDogCollision() {
 }
 
 function showFloatText(x, y, msg, color) {
-    let t = this.add.text(x, y, msg, { fontSize: '24px', fill: color, fontStyle: 'bold' }).setOrigin(0.5);
+    let t = this.add.text(x, y, msg, { fontSize: '22px', fill: color, fontStyle: 'bold' }).setOrigin(0.5);
     this.tweens.add({
         targets: t, y: y - 50, alpha: 0, duration: 1000,
         onComplete: () => t.destroy()
