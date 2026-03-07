@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>好酪 Hello Panna - 手機觸控版</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0;
+            background-color: #Fdf6e3; 
+            font-family: '微軟正黑體', sans-serif;
+            overflow: hidden; /* 隱藏手機瀏覽器的捲軸 */
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+const config = {
+    type: Phaser.AUTO,
+    width: 900,
+    height: 650,
+    backgroundColor: '#FAF0E6', 
+    scale: {
+        // 自動縮放以適應螢幕，並保持比例置中
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    physics: {
+        default: 'arcade',
+        arcade: { debug: false }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+const game = new Phaser.Game(config);
+
+let player, dog, obstacles;
+let cursors, spacebar;
+let score = 0;
+let heldItem = null; 
+let fridgeTimer = 0;
+let fridgeState = 'empty'; 
+let currentOrder = null;
+
+// 觸控控制變數
+let actionButton;
+let isJoyStickActive = false;
+let joystickBase, joystickStick;
+let joyVector = new Phaser.Math.Vector2(0, 0);
+
+const MENU = [
+    { id: 'original', name: '經典原味', price: 50 },
+    { id: 'chocolate', name: '巧克力', price: 55 },
+    { id: 'matcha', name: '抹茶', price: 55 },
+    { id: 'sesame', name: '芝麻', price: 55 },
+    { id: 'earl_grey', name: '伯爵紅茶', price: 55 },
+    { id: 'thai_tea', name: '泰式奶茶', price: 55 },
+    { id: 'taro', name: '芋香紫薯', price: 55 },
+    { id: 'jasmine', name: '十薰茉莉綠', price: 55 },
+    { id: 'tipsy', name: '微醺', price: 55 },
+    { id: 'coffee', name: '咖啡', price: 55 }
+];
+
+function preload() {}
+
+function create() {
+    // 為了確保所有圖形都在正確圖層，建立一個場景容器
+    const graphics = this.add.graphics();
+    graphics.lineStyle(2, 0xE0D4C8, 1);
+    for(let i=0; i<900; i+=50) {
+        graphics.moveTo(i, 0); graphics.lineTo(i, 650);
+        graphics.moveTo(0, i); graphics.lineTo(900, i);
+    }
+    graphics.strokePath();
+
+    obstacles = this.physics.add.staticGroup();
+    let island = this.add.rectangle(400, 350, 350, 70, 0xB0BEC5);
+    this.add.text(320, 340, '🗄️ 不鏽鋼中島', { fontSize: '20px', fill: '#37474F', fontStyle: 'bold' });
+    obstacles.add(this.physics.add.existing(island, true));
+
+    let wall = this.add.rectangle(620, 480, 40, 200, 0x90A4AE);
+    obstacles.add(this.physics.add.existing(wall, true));
+
+    this.stations = {
+        base: this.add.rectangle(150, 550, 180, 100, 0xBBDEFB).setInteractive(),
+        flavor: this.add.rectangle(400, 550, 180, 100, 0xC8E6C9).setInteractive(),
+        fridge: this.add.rectangle(750, 550, 180, 100, 0xE1BEE7).setInteractive(),
+        counter: this.add.rectangle(400, 110, 400, 100, 0xFFE082).setInteractive()
+    };
+
+    this.add.text(90, 535, '🥛 拿取基底', { fontSize: '22px', fill: '#1565C0', fontStyle: 'bold' });
+    this.add.text(340, 535, '🍓 調配口味', { fontSize: '22px', fill: '#2E7D32', fontStyle: 'bold' });
+    this.fridgeText = this.add.text(690, 535, '❄️ 冷藏定型', { fontSize: '22px', fill: '#6A1B9A', fontStyle: 'bold' });
+    this.add.text(330, 95, '🛎️ 出餐結帳區', { fontSize: '24px', fill: '#E65100', fontStyle: 'bold' });
+
+    player = this.add.text(400, 220, '👩‍🍳', { fontSize: '45px' }).setOrigin(0.5);
+    this.physics.add.existing(player);
+    player.body.setCollideWorldBounds(true);
+    player.body.setSize(35, 35); 
+    this.tweens.add({ targets: player, scaleY: 1.1, duration: 500, yoyo: true, repeat: -1 });
+
+    dog = this.add.text(100, 250, '🐶', { fontSize: '35px' }).setOrigin(0.5);
+    this.physics.add.existing(dog);
+    dog.body.setCollideWorldBounds(true);
+    dog.body.setVelocity(180, 180); 
+    dog.body.setBounce(1, 1);
+    this.tweens.add({ targets: dog, angle: 10, duration: 200, yoyo: true, repeat: -1 });
+
+    this.physics.add.collider(player, obstacles);
+    this.physics.add.collider(dog, obstacles);
+    this.physics.add.overlap(player, dog, handleDogCollision, null, this);
+
+    const uiBg = this.add.rectangle(450, 30, 900, 60, 0x3E2723, 0.9).setScrollFactor(0);
+    this.scoreText = this.add.text(20, 15, '💰 營業額: $0', { fontSize: '24px', fill: '#FFF' }).setScrollFactor(0);
+    this.heldText = this.add.text(280, 15, '🤲 手上: 無', { fontSize: '24px', fill: '#FFD54F' }).setScrollFactor(0);
+    this.orderText = this.add.text(580, 15, '🧾 等待顧客...', { fontSize: '24px', fill: '#FFF' }).setScrollFactor(0);
+
+    // === 新增：手機觸控 UI (固定在畫面上方) ===
+    createMobileUI.call(this);
+
+    // 鍵盤輸入 (保留給電腦測試用)
+    cursors = this.input.keyboard.createCursorKeys();
+    spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    generateOrder.call(this);
+}
+
+function createMobileUI() {
+    // 1. 互動按鈕 (右手) - 放在螢幕右下角
+    actionButton = this.add.circle(800, 550, 60, 0xFF5722, 0.8).setScrollFactor(0).setInteractive();
+    this.add.text(765, 535, '動作', { fontSize: '28px', fill: '#FFF', fontStyle: 'bold' }).setScrollFactor(0);
+    
+    // 按下按鈕時觸發互動
+    actionButton.on('pointerdown', () => {
+        actionButton.setAlpha(0.5); // 按下視覺回饋
+        interactWithStation.call(this);
+    });
+    actionButton.on('pointerup', () => actionButton.setAlpha(0.8));
+    actionButton.on('pointerout', () => actionButton.setAlpha(0.8));
+
+    // 2. 虛擬搖桿 (左手) - 隱形接收區
+    joystickBase = this.add.circle(150, 550, 70, 0x000000, 0.2).setScrollFactor(0).setVisible(false);
+    joystickStick = this.add.circle(150, 550, 35, 0x000000, 0.5).setScrollFactor(0).setVisible(false);
+
+    // 監聽畫面的觸控事件
+    this.input.on('pointerdown', function (pointer) {
+        // 如果點擊在畫面左半部 (搖桿區)
+        if (pointer.x < 450) {
+            isJoyStickActive = true;
+            joystickBase.setPosition(pointer.x, pointer.y).setVisible(true);
+            joystickStick.setPosition(pointer.x, pointer.y).setVisible(true);
+        }
+    }, this);
+
+    this.input.on('pointermove', function (pointer) {
+        if (isJoyStickActive && pointer.isDown && pointer.x < 450) {
+            // 計算手指與搖桿中心的距離與角度
+            let dx = pointer.x - joystickBase.x;
+            let dy = pointer.y - joystickBase.y;
+            let angle = Math.atan2(dy, dx);
+            let distance = Math.min(70, Math.sqrt(dx * dx + dy * dy)); // 限制搖桿推動範圍
+
+            // 移動搖桿中心點
+            joystickStick.setPosition(
+                joystickBase.x + Math.cos(angle) * distance,
+                joystickBase.y + Math.sin(angle) * distance
+            );
+
+            // 轉換為正規化向量 (-1 到 1 之間)
+            joyVector.set(Math.cos(angle), Math.sin(angle));
+            
+            // 如果推動距離太小，不移動 (死區設定)
+            if (distance < 10) joyVector.set(0, 0);
+        }
+    }, this);
+
+    this.input.on('pointerup', function (pointer) {
+        if (pointer.x < 450 || isJoyStickActive) {
+            isJoyStickActive = false;
+            joystickBase.setVisible(false);
+            joystickStick.setVisible(false);
+            joyVector.set(0, 0);
+        }
+    }, this);
+}
+
+function update(time, delta) {
+    player.body.setVelocity(0);
+    const speed = 250; 
+    
+    // 優先使用觸控搖桿移動
+    if (isJoyStickActive && (joyVector.x !== 0 || joyVector.y !== 0)) {
+        player.body.setVelocityX(joyVector.x * speed);
+        player.body.setVelocityY(joyVector.y * speed);
+    } 
+    // 備用：鍵盤移動
+    else {
+        if (cursors.left.isDown) player.body.setVelocityX(-speed);
+        else if (cursors.right.isDown) player.body.setVelocityX(speed);
+        
+        if (cursors.up.isDown) player.body.setVelocityY(-speed);
+        else if (cursors.down.isDown) player.body.setVelocityY(speed);
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(spacebar)) {
+        interactWithStation.call(this);
+    }
+
+    if (fridgeState === 'cooling') {
+        fridgeTimer -= delta;
+        this.fridgeText.setText(`❄️ 凝固中... ${Math.ceil(fridgeTimer/1000)}s`);
+        if (fridgeTimer <= 0) {
+            fridgeState = 'ready';
+            this.fridgeText.setText('✨ 奶酪完成！');
+            this.fridgeText.setColor('#D50000');
+        }
+    }
+}
+
+function interactWithStation() {
+    const px = player.x; const py = player.y;
+    const dist = 90; 
+
+    if (Phaser.Math.Distance.Between(px, py, this.stations.base.x, this.stations.base.y) < dist) {
+        if (!heldItem) updateHeldItem.call(this, '基底液');
+    }
+    else if (Phaser.Math.Distance.Between(px, py, this.stations.flavor.x, this.stations.flavor.y) < dist) {
+        if (heldItem === '基底液') updateHeldItem.call(this, `調味 (${currentOrder.name})`);
+    }
+    else if (Phaser.Math.Distance.Between(px, py, this.stations.fridge.x, this.stations.fridge.y) < dist) {
+        if (heldItem && heldItem.includes('調味') && fridgeState === 'empty') {
+            updateHeldItem.call(this, null);
+            fridgeState = 'cooling';
+            fridgeTimer = 3000;
+            this.fridgeText.setColor('#000000');
+        } else if (!heldItem && fridgeState === 'ready') {
+            updateHeldItem.call(this, `成品 (${currentOrder.name})`);
+            fridgeState = 'empty';
+            this.fridgeText.setText('❄️ 冷藏定型');
+            this.fridgeText.setColor('#6A1B9A');
+        }
+    }
+    else if (Phaser.Math.Distance.Between(px, py, this.stations.counter.x, this.stations.counter.y) < dist + 60) {
+        if (heldItem === `成品 (${currentOrder.name})`) {
+            score += currentOrder.price;
+            this.scoreText.setText(`💰 營業額: $${score}`);
+            updateHeldItem.call(this, null);
+            showFloatText.call(this, px, py - 30, `+$${currentOrder.price}`, '#4CAF50');
+            generateOrder.call(this);
+        }
+    }
+}
+
+function updateHeldItem(itemName) {
+    heldItem = itemName;
+    this.heldText.setText(`🤲 手上: ${heldItem ? heldItem : '無'}`);
+}
+
+function generateOrder() {
+    currentOrder = MENU[Math.floor(Math.random() * MENU.length)];
+    this.orderText.setText(`🧾 訂單: ${currentOrder.name} ($${currentOrder.price})`);
+}
+
+function handleDogCollision() {
+    if (heldItem) {
+        updateHeldItem.call(this, null);
+        showFloatText.call(this, player.x, player.y - 40, '💥 打翻了！', '#F44336');
+        player.body.setVelocity(dog.body.velocity.x * 3, dog.body.velocity.y * 3);
+    }
+}
+
+function showFloatText(x, y, msg, color) {
+    let t = this.add.text(x, y, msg, { fontSize: '24px', fill: color, fontStyle: 'bold' }).setOrigin(0.5);
+    this.tweens.add({
+        targets: t, y: y - 50, alpha: 0, duration: 1000,
+        onComplete: () => t.destroy()
+    });
+}
+</script>
+
+</body>
+</html>
