@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工程報價單</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; -webkit-print-color-adjust: exact; }
+        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 20px; height: 20px; animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        ::placeholder { color: #cbd5e1; opacity: 1; }
+        .action-btn { @apply p-1 rounded text-gray-400 hover:text-gray-600 transition-colors; }
+
+        /* --- 核心樣式控制區 --- */
+        .web-view { display: block; }
+        .print-view { display: none; }
+        .editor-hint { display: block; }
+        .pdf-hint { display: none; }
+
+        @media print {
+            /* 設定列印實體紙張邊界，縮小下邊距，交由 tfoot 控制安全防護距離 */
+            @page {
+                size: A4;
+                margin: 12mm 10mm 10mm 10mm; 
+            }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .print-only-flex { display: flex !important; }
+            body { background-color: white; }
+            
+            /* 列印時自動縮放以適應 A4 紙張 */
+            .page-container { 
+                display: block !important; 
+                box-shadow: none; 
+                margin: 0; 
+                padding: 0 !important; 
+                width: 100% !important;   
+                max-width: none !important;
+            }
+
+            input, textarea, select { border: none !important; appearance: none; padding: 0; background: transparent; resize: none; }
+            ::placeholder { color: transparent; }
+            .company-input { text-align: right; width: auto; display: inline-block; }
+            .header-input { text-align: right; width: auto; display: inline-block; border-bottom: 1px dotted #ccc !important; }
+            
+            /* 列印時的切換與顏色強制蓋過 */
+            .web-view { display: none !important; }
+            .print-view { display: block !important; }
+            .editor-hint { display: none !important; } 
+            .pdf-hint { 
+                display: block !important; 
+                color: #555 !important;
+                font-size: 9px !important;
+                margin-top: 2px;
+                white-space: nowrap;
+                font-weight: normal;
+            }
+            .print-text-black { color: #1f2937 !important; }
+            .print-bg-transparent { background-color: transparent !important; }
+
+            /* 【終極防切斷機制】必須應用在純 Block 元素上才生效 */
+            .print-avoid-break {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* 針對項目表格強化防切斷，允許表格跨頁，但不允許單一群組跨頁 */
+            .item-table { page-break-inside: auto !important; }
+            .item-table tbody { 
+                page-break-inside: avoid !important; 
+                break-inside: avoid !important; 
+            }
+            .item-table tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+
+            /* 每一頁底部的固定資訊，會完美嵌入 tfoot 創造出的安全空間內 */
+            .print-page-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 12mm; /* 設定精確高度 */
+                padding: 0 10mm;
+                align-items: center;
+                justify-content: space-between;
+                font-size: 12px;
+                color: #555;
+                background-color: white !important;
+                border-top: 1px solid #ddd;
+                z-index: 50;
+            }
+        }
+
+        /* 寬版面設定 */
+        .page-container { 
+            width: 250mm;
+            min-height: 297mm; 
+            background: white; 
+            margin: 20px auto; 
+            padding: 15mm 20mm 25mm 20mm;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .header-input { text-align: right; background: transparent; border-bottom: 1px dotted #a0aec0; outline: none; }
+        .header-input:focus { border-bottom-color: #2563eb; }
+        
+        /* 拖曳與選取時的視覺回饋 */
+        .drag-over { border-top: 2px solid #3b82f6 !important; }
+        .dragging { opacity: 0.4; background-color: #f8fafc; }
+        .row-checked { background-color: #eff6ff !important; border-color: #bfdbfe !important; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div v-if="!apiUrl" class="fixed inset-0 bg-gray-900 bg-opacity-90 z-50 flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-lg p-8 max-w-lg w-full shadow-2xl">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">系統連線設定</h2>
+            <p class="text-gray-600 mb-4 text-sm">請輸入您的 Google Apps Script 部署網址以啟用雲端存取功能。</p>
+            <input type="text" v-model="inputUrl" class="w-full border p-3 rounded mb-4" placeholder="https://script.google.com/macros/s/..../exec">
+            <button @click="saveApiUrl" class="w-full bg-blue-600 text-white py-3 rounded font-bold hover:bg-blue-700">連線至資料庫</button>
+            <p class="mt-4 text-xs text-gray-400 text-center">此設定會記錄在瀏覽器，若清除快取需重新輸入網址。</p>
+        </div>
+    </div>
+
+    <!-- 專案管理資料夾 Modal -->
+    <div v-if="showFileManager" class="fixed inset-0 bg-gray-900 bg-opacity-70 z-50 flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-[85vh] flex overflow-hidden">
+            <!-- 左側資料夾列表 -->
+            <div class="w-1/3 bg-gray-50 border-r border-gray-200 flex flex-col">
+                <div class="p-4 bg-gray-100 border-b border-gray-200 font-bold text-gray-800 flex justify-between items-center">
+                    <span class="flex items-center"><i class="fas fa-folder text-yellow-500 text-xl mr-2"></i> 專案資料夾</span>
+                    <button @click="fetchCloudData" class="text-gray-500 hover:text-blue-600 transition" title="重整雲端資料"><i class="fas fa-sync"></i></button>
+                </div>
+                <div class="overflow-y-auto flex-1 p-3 space-y-2">
+                    <div v-for="folder in groupedQuotes" :key="folder.quoteNo + folder.clientName"
+                         @click="activeFolder = folder"
+                         :class="{'bg-blue-100 border-blue-400 shadow-sm': activeFolder === folder, 'hover:bg-gray-200 border-gray-200 bg-white': activeFolder !== folder}"
+                         class="p-3 cursor-pointer border rounded-lg transition-all flex justify-between items-center group">
+                         <div>
+                             <div class="font-bold text-gray-800 text-base group-hover:text-blue-800">{{ folder.quoteNo || '無單號' }}</div>
+                             <div class="text-xs text-gray-500 mt-1"><i class="fas fa-user text-gray-400 mr-1"></i>{{ folder.clientName || '未命名客戶' }}</div>
+                         </div>
+                         <div class="flex flex-col items-end">
+                             <div class="text-xs bg-white px-2 py-1 rounded shadow-sm text-gray-600 font-bold">{{ folder.versions.length }} 版</div>
+                         </div>
+                    </div>
+                    <div v-if="groupedQuotes.length === 0" class="text-center text-gray-400 pt-10">尚無雲端資料</div>
+                </div>
+            </div>
+            
+            <!-- 右側歷史版本列表 -->
+            <div class="w-2/3 flex flex-col bg-white">
+                <div class="p-4 bg-blue-50 border-b border-blue-100 flex justify-between items-center">
+                    <h3 class="font-bold text-blue-900 text-lg flex items-center">
+                        <i class="fas fa-file-invoice-dollar mr-2 text-blue-500"></i>
+                        <span v-if="activeFolder">{{ activeFolder.quoteNo }} - {{ activeFolder.clientName }} (歷史版本)</span>
+                        <span v-else class="text-gray-500 font-normal">請由左側選擇專案資料夾</span>
+                    </h3>
+                    <button @click="showFileManager = false" class="text-gray-400 hover:text-red-500 text-2xl transition"><i class="fas fa-times-circle"></i></button>
+                </div>
+                <div class="p-0 flex-1 overflow-y-auto" v-if="activeFolder">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 bg-white shadow-sm z-10">
+                            <tr class="border-b-2 border-gray-200 text-gray-600 text-sm bg-gray-50">
+                                <th class="p-3">保存時間</th>
+                                <th class="p-3">保存者</th>
+                                <th class="p-3">版本備註</th>
+                                <th class="p-3 text-right">總價(含稅)</th>
+                                <th class="p-3 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(v, idx) in activeFolder.versions" :key="v.id" class="border-b border-gray-100 hover:bg-blue-50 transition-colors">
+                                <td class="p-3 text-sm text-gray-800">
+                                    {{ new Date(v.id).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12: false}) }}
+                                    <span v-if="idx === 0" class="ml-2 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200 font-bold">最新</span>
+                                </td>
+                                <td class="p-3 text-sm">
+                                    <span class="bg-gray-200 text-gray-800 px-2 py-1 rounded text-xs font-bold shadow-sm">
+                                        <i class="fas fa-user-circle mr-1 text-gray-500"></i>{{ v.savedBy || '未知名稱' }}
+                                    </span>
+                                </td>
+                                <td class="p-3 text-sm text-gray-600 font-medium">{{ v.versionNote || '-' }}</td>
+                                <td class="p-3 text-sm text-right font-bold text-blue-800">$ {{ formatNumber(calculateTotal(v)) }}</td>
+                                <td class="p-3 text-center">
+                                    <button @click="loadVersion(v)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-xs shadow transition font-bold">
+                                        載入此版
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div v-else class="flex-1 flex items-center justify-center text-gray-400 bg-gray-50">
+                    <div class="text-center">
+                        <i class="fas fa-folder-open text-7xl mb-4 text-gray-200"></i>
+                        <p class="text-lg">點擊左側資料夾以檢視各版本的報價單</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頂部導覽列 -->
+    <div class="no-print fixed top-0 left-0 right-0 bg-slate-800 text-white p-3 shadow-lg z-40 flex flex-wrap justify-between items-center gap-2">
+        <div class="flex items-center gap-2">
+            <div class="font-bold text-lg"><i class="fas fa-hard-hat mr-2"></i>興居裝修 v27</div>
+            <span v-if="statusMsg" class="text-xs bg-yellow-500 text-black px-2 py-1 rounded font-bold shadow">{{ statusMsg }}</span>
+        </div>
+
+        <div class="flex items-center bg-slate-700 rounded px-2 py-1 gap-2">
+            <button @click="undo" :disabled="historyIndex <= 0" :class="{'opacity-30': historyIndex <= 0}" class="text-white hover:text-yellow-400 px-2 transition" title="上一步 (Ctrl+Z)">
+                <i class="fas fa-undo"></i> 上一步
+            </button>
+            <div class="border-l border-slate-600 h-4"></div>
+            <button @click="redo" :disabled="historyIndex >= history.length - 1" :class="{'opacity-30': historyIndex >= history.length - 1}" class="text-white hover:text-yellow-400 px-2 transition" title="下一步 (Ctrl+Y)">
+                <i class="fas fa-redo"></i> 下一步
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+            <!-- 專案管理按鈕 (取代舊的下拉選單) -->
+            <button @click="openFileManager" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold shadow flex items-center transition">
+                <i class="fas fa-folder-open text-yellow-300 mr-2"></i> 專案管理夾
+            </button>
+            <button @click="fetchCloudData" class="text-gray-400 hover:text-white transition px-1" title="重整雲端資料"><i class="fas fa-sync"></i></button>
+            <div class="h-6 border-l border-gray-600 mx-1"></div>
+            
+            <button @click="copyQuote" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm transition" title="複製當前所有內容，生成一個全新單號的訂單">
+                <i class="fas fa-copy"></i> 複製新單
+            </button>
+
+            <button @click="resetForm" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition" title="清空全部欄位，開啟一張全新的空白單">
+                <i class="fas fa-plus"></i> 空白新單
+            </button>
+            
+            <div class="h-6 border-l border-gray-600 mx-1"></div>
+
+            <!-- 多人多版本儲存區塊 -->
+            <div class="flex items-center bg-slate-700 rounded p-1 shadow-inner gap-2">
+                <!-- 選擇操作人員 -->
+                <div class="flex items-center bg-slate-800 rounded px-2 py-1">
+                    <i class="fas fa-user-edit text-gray-400 text-xs mr-1"></i>
+                    <select v-model="currentUser" class="bg-transparent text-yellow-400 font-bold text-sm outline-none cursor-pointer">
+                        <option value="建鈞" class="text-black">建鈞</option>
+                        <option value="愛婷" class="text-black">愛婷</option>
+                        <option value="立偉" class="text-black">立偉</option>
+                    </select>
+                </div>
+
+                <input type="text" v-model="form.versionNote" placeholder="輸入版本備註..." class="text-sm bg-slate-600 text-white px-2 py-1 rounded w-32 outline-none focus:bg-slate-500 placeholder-gray-400 transition">
+                
+                <!-- 原本機制的存檔 (覆蓋同一 ID) -->
+                <button @click="saveToCloud(false)" :disabled="isLoading" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm flex items-center font-bold transition shadow" title="覆蓋更新當前這份存檔">
+                    <span v-if="isLoading && !isSavingNew" class="loader mr-2"></span>
+                    <i v-else class="fas fa-save mr-1"></i> 存檔(覆蓋)
+                </button>
+                <!-- 另存新版 (產生新 ID) -->
+                <button @click="saveToCloud(true)" :disabled="isLoading" class="bg-teal-500 hover:bg-teal-400 text-white px-3 py-1 rounded text-sm flex items-center font-bold transition shadow" title="保留原檔，以目前內容額外存成一個新版本">
+                    <span v-if="isLoading && isSavingNew" class="loader mr-2"></span>
+                    <i v-else class="fas fa-code-branch mr-1"></i> 另存新版
+                </button>
+            </div>
+
+            <button @click="printQuote" class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm ml-1 transition"><i class="fas fa-print"></i> 列印</button>
+        </div>
+    </div>
+
+    <div class="h-16 no-print"></div>
+
+    <!-- 報價單紙張內容 (不變，維持你的版面) -->
+    <div class="page-container">
+        <table class="w-full h-full border-none m-0 p-0">
+            <tbody class="align-top">
+                <tr>
+                    <td class="border-none p-0">
+                        
+                        <header class="flex justify-between items-start border-b-2 border-gray-800 pb-4 mb-6">
+                            <div class="w-1/2">
+                                <h1 class="text-3xl font-bold text-gray-800 tracking-wider mb-2">工程報價單</h1>
+                                <p class="text-sm text-gray-500">QUOTATION</p>
+                            </div>
+                            <div class="w-1/2 flex flex-col items-end space-y-2">
+                                <div class="flex items-center justify-end">
+                                    <label class="text-sm text-gray-600 font-bold mr-2">報價單號：</label>
+                                    <input type="text" v-model="form.quoteNo" class="header-input w-48 font-bold text-gray-800">
+                                </div>
+                                <div class="flex items-center justify-end">
+                                    <label class="text-sm text-gray-600 mr-2">報價日期：</label>
+                                    <input type="date" v-model="form.date" class="header-input w-48">
+                                </div>
+                                <div class="flex items-center justify-end">
+                                    <label class="text-sm text-gray-600 mr-2">有效期限：</label>
+                                    <input type="text" v-model="form.validity" class="header-input w-24 text-center">
+                                </div>
+                            </div>
+                        </header>
+
+                        <div class="grid grid-cols-2 gap-8 mb-6">
+                            <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                                <h3 class="font-bold text-gray-700 border-b border-gray-300 mb-3 pb-1">客戶資料 (Client)</h3>
+                                <div class="space-y-2">
+                                    <div class="flex items-center"><label class="w-20 text-sm text-gray-600">客戶名稱：</label><input type="text" v-model="form.clientName" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm"></div>
+                                    <div class="flex items-center"><label class="w-20 text-sm text-gray-600">聯絡電話：</label><input type="text" v-model="form.clientPhone" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm"></div>
+                                    <div class="flex items-center"><label class="w-20 text-sm text-gray-600">工程地址：</label><input type="text" v-model="form.projectAddress" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm"></div>
+                                    <div class="flex items-center" :class="{'no-print': !form.showProjectDuration}">
+                                        <label class="w-24 text-sm text-gray-600 flex items-center cursor-pointer" title="打勾表示列印時顯示此欄位">
+                                            <input type="checkbox" v-model="form.showProjectDuration" class="no-print mr-1 cursor-pointer">
+                                            預計工期：
+                                        </label>
+                                        <input type="text" v-model="form.projectDuration" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm" placeholder="例如：30個工作天">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                                <h3 class="font-bold text-gray-700 border-b border-gray-300 mb-3 pb-1">公司資料 (Company)</h3>
+                                <div class="space-y-2">
+                                    <h2 class="text-lg font-bold text-gray-800">興居室內裝修設計工程有限公司</h2>
+                                    <p class="text-sm text-gray-600 flex items-center"><i class="fas fa-map-marker-alt w-5 text-center mr-2"></i> 彰化市金馬路二段519號</p>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-user w-5 text-center mr-2 text-gray-600"></i>
+                                        <input type="text" v-model="company.contact" placeholder="請輸入聯絡人" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm">
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-phone w-5 text-center mr-2 text-gray-600"></i>
+                                        <input type="text" v-model="company.phone" placeholder="請輸入公司電話" class="flex-1 border-b border-gray-300 focus:outline-none bg-transparent text-sm">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="groupSummaries.length > 0" class="mb-8 p-6 rounded-lg border border-gray-300 bg-white print-avoid-break shadow-sm">
+                            <h3 class="font-bold text-gray-800 border-b-2 border-gray-800 mb-4 pb-2 text-xl tracking-widest">各項工程摘要</h3>
+                            
+                            <div class="flex flex-col space-y-3">
+                                <div v-for="(group, idx) in groupSummaries" :key="idx" class="flex justify-between items-center border-b border-dotted border-gray-300 pb-2 px-2 hover:bg-gray-50 transition-colors">
+                                    <span class="text-gray-700 text-base font-medium">{{ group.name || '未命名群組' }}</span>
+                                    <span class="text-gray-900 text-lg font-bold tracking-wide">$ {{ formatNumber(group.subtotal) }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 pt-3 flex flex-col space-y-2">
+                                <div class="flex justify-between items-center px-2">
+                                    <span class="text-gray-500 text-sm">稅額 <span v-if="form.taxRate > 0">(5%)</span></span>
+                                    <span class="text-gray-600 text-base font-medium">$ {{ formatNumber(taxAmount) }}</span>
+                                </div>
+                                <div class="flex justify-between items-end mt-2 pt-3 border-t-2 border-gray-800 px-2">
+                                    <span class="text-gray-800 font-bold text-lg tracking-wide">稅後總價</span>
+                                    <span class="text-gray-900 font-bold text-2xl tracking-wider text-blue-700">$ {{ formatNumber(totalAmount) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <table class="w-full text-left border-collapse item-table">
+                                <thead>
+                                    <tr class="bg-gray-800 text-white text-sm">
+                                        <th class="p-2 w-16 text-center">#</th>
+                                        <th class="p-2 w-[45%]">項目說明</th>
+                                        <th class="p-2 w-16 text-center">單位</th>
+                                        <th class="p-2 w-20 text-center">數量</th>
+                                        <th class="p-2 w-24 text-right">單價</th>
+                                        <th class="p-2 w-24 text-right">複價</th>
+                                        <th class="p-2 w-20 text-center no-print">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody v-for="(item, index) in form.items" :key="item.id || index" class="text-sm">
+                                        
+                                    <tr v-if="!item.isGroup" 
+                                        class="border-b border-gray-200 hover:bg-gray-50 group transition-all duration-200"
+                                        :class="{'row-checked': item.checked, 'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
+                                        draggable="true"
+                                        @dragstart="onDragStart(index, $event)"
+                                        @dragenter.prevent="onDragEnter(index)"
+                                        @dragover.prevent
+                                        @drop="onDrop(index)"
+                                        @dragend="onDragEnd">
+                                        
+                                        <td class="p-2 text-center text-gray-500 align-top pt-3">
+                                            <div class="web-view flex items-center justify-center gap-2">
+                                                <input type="checkbox" v-model="item.checked" class="no-print w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                                <span class="cursor-move" title="拖曳排序">{{ index + 1 }}</span>
+                                            </div>
+                                            <div class="print-view">{{ index + 1 }}</div>
+                                        </td>
+                                        
+                                        <td class="p-2 align-top">
+                                            <div class="web-view">
+                                                <input type="text" 
+                                                        :value="getCleanName(item.name)"
+                                                        @input="handleNameInput(item, $event)"
+                                                        class="w-full bg-transparent focus:outline-none font-medium text-gray-800" 
+                                                        placeholder="項目名稱">
+                                                <div v-if="getConditionText(item.name)" class="text-gray-400 text-[11px] mt-0.5">
+                                                    {{ getConditionText(item.name) }}
+                                                </div>
+                                                <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
+                                                    <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(item)}}，將以 {{getEffectiveQty(item)}} 計價
+                                                </div>
+                                            </div>
+                                            <div class="print-view text-gray-800 font-medium">
+                                                {{ getCleanName(item.name) }}
+                                            </div>
+                                        </td>
+
+                                        <td class="p-2 align-top pt-3"><input type="text" v-model="item.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-800"></td>
+                                        <td class="p-2 align-top pt-3"><input type="number" v-model.number="item.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-800" min="0"></td>
+                                        <td class="p-2 align-top pt-3 whitespace-nowrap"><input type="number" v-model.number="item.price" class="w-full text-right bg-transparent focus:outline-none text-gray-800" min="0"></td>
+                                        
+                                        <td class="p-2 text-right text-gray-800 font-medium relative align-top pt-3 whitespace-nowrap">
+                                            <span>{{ formatNumber(getEffectiveQty(item) * item.price) }}</span>
+                                            <div v-if="item.qty > 0 && getEffectiveQty(item) > item.qty" class="pdf-hint text-[10px] text-gray-500">
+                                                (未滿{{getEffectiveQty(item)}}以{{getEffectiveQty(item)}}計)
+                                            </div>
+                                        </td>
+
+                                        <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
+                                            <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳排序"><i class="fas fa-grip-lines"></i></span>
+                                            <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除項目"><i class="fas fa-trash-alt"></i></button>
+                                        </td>
+                                    </tr>
+
+                                    <template v-else>
+                                        
+                                        <tr class="border-b border-gray-200 bg-gray-100 group transition-all duration-200"
+                                            :class="{'dragging': dragIndex === index, 'drag-over': dragOverIndex === index}"
+                                            draggable="true"
+                                            @dragstart="onDragStart(index, $event)"
+                                            @dragenter.prevent="onDragEnter(index)"
+                                            @dragover.prevent
+                                            @drop="onDrop(index)"
+                                            @dragend="onDragEnd">
+                                            
+                                            <td class="p-2 text-center text-blue-600 print-text-black align-top pt-3 font-bold">
+                                                <div class="web-view flex items-center justify-center gap-2">
+                                                    <i class="fas fa-folder-open text-blue-400 no-print"></i>
+                                                    <span class="cursor-move" title="拖曳整個群組">{{ index + 1 }}</span>
+                                                </div>
+                                                <div class="print-view">{{ index + 1 }}</div>
+                                            </td>
+                                            
+                                            <td colspan="5" class="p-2 align-top pt-3">
+                                                <div class="web-view flex items-center gap-2">
+                                                    <span class="font-bold text-blue-800">群組：</span>
+                                                    <input type="text" v-model="item.name" class="font-bold text-blue-800 bg-transparent focus:outline-none border-b border-blue-200 w-1/2" placeholder="群組名稱">
+                                                </div>
+                                                <div class="print-view font-bold text-gray-800 text-base mb-1">
+                                                    【{{ item.name }}】
+                                                </div>
+                                            </td>
+                                            
+                                            <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-20 group-hover:opacity-100 transition-opacity align-top pt-3">
+                                                <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳群組"><i class="fas fa-grip-lines"></i></span>
+                                                <button @click="ungroupItem(index)" class="action-btn text-orange-400 hover:text-orange-600" title="解散群組 (細項將恢復獨立)"><i class="fas fa-unlink"></i></button>
+                                                <button @click="removeItem(index)" class="action-btn text-red-400 hover:text-red-600" title="刪除整組"><i class="fas fa-trash-alt"></i></button>
+                                            </td>
+                                        </tr>
+
+                                        <tr v-for="(subItem, sIdx) in item.subItems" :key="'sub-'+sIdx" 
+                                            class="border-b border-gray-100 hover:bg-gray-50 group/sub print-bg-transparent transition-all duration-200"
+                                            :class="{'dragging': dragGroupIndex === index && dragSubIndex === sIdx, 'drag-over': dragGroupIndex === index && dragOverSubIndex === sIdx}"
+                                            draggable="true"
+                                            @dragstart.stop="onSubDragStart(index, sIdx, $event)"
+                                            @dragenter.prevent.stop="onSubDragEnter(index, sIdx)"
+                                            @dragover.prevent.stop
+                                            @drop.stop="onSubDrop(index, sIdx, $event)"
+                                            @dragend.stop="onSubDragEnd">
+                                            
+                                            <td class="p-2 text-center text-gray-400 align-top pt-3 text-xs bg-gray-50/30 print-bg-transparent">
+                                                {{ index + 1 }}-{{ sIdx + 1 }}
+                                            </td>
+                                            
+                                            <td class="p-2 align-top pl-6 bg-gray-50/30 print-bg-transparent">
+                                                <div class="web-view flex items-start gap-2">
+                                                    <i class="fas fa-angle-right text-gray-300 mt-1"></i>
+                                                    <div class="w-full">
+                                                        <input type="text" 
+                                                                :value="getCleanName(subItem.name)"
+                                                                @input="handleNameInput(subItem, $event)"
+                                                                class="w-full bg-transparent focus:outline-none font-medium text-gray-700" 
+                                                                placeholder="項目名稱">
+                                                        <div v-if="getConditionText(subItem.name)" class="text-gray-400 text-[11px] mt-0.5">
+                                                            {{ getConditionText(subItem.name) }}
+                                                        </div>
+                                                        <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="editor-hint text-[11px] text-red-500 mt-1 font-bold">
+                                                            <i class="fas fa-exclamation-circle mr-1"></i>數量未滿 {{getEffectiveQty(subItem)}}，將以 {{getEffectiveQty(subItem)}} 計價
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="print-view text-gray-700 font-medium pl-2">
+                                                    - {{ getCleanName(subItem.name) }}
+                                                </div>
+                                            </td>
+                                            
+                                            <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="text" v-model="subItem.unit" class="w-full text-center bg-transparent focus:outline-none text-gray-700"></td>
+                                            <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent"><input type="number" v-model.number="subItem.qty" class="w-full text-center bg-transparent focus:outline-none text-gray-700" min="0"></td>
+                                            <td class="p-2 align-top pt-3 bg-gray-50/30 print-bg-transparent whitespace-nowrap"><input type="number" v-model.number="subItem.price" class="w-full text-right bg-transparent focus:outline-none text-gray-700" min="0"></td>
+                                            
+                                            <td class="p-2 text-right text-gray-700 relative align-top pt-3 bg-gray-50/30 print-bg-transparent whitespace-nowrap">
+                                                <span>{{ formatNumber(getEffectiveQty(subItem) * subItem.price) }}</span>
+                                                <div v-if="subItem.qty > 0 && getEffectiveQty(subItem) > subItem.qty" class="pdf-hint text-[10px] text-gray-500">
+                                                    (未滿{{getEffectiveQty(subItem)}}以{{getEffectiveQty(subItem)}}計)
+                                                </div>
+                                            </td>
+                                            
+                                            <td class="p-2 text-center no-print flex justify-center items-center gap-2 opacity-0 group-hover/sub:opacity-100 transition-opacity align-top pt-3 bg-gray-50/30">
+                                                <span class="cursor-move text-gray-400 hover:text-gray-600" title="拖曳排序細項"><i class="fas fa-grip-lines"></i></span>
+                                                <button @click="removeSubItem(index, sIdx)" class="action-btn text-red-300 hover:text-red-500" title="刪除此細項"><i class="fas fa-times"></i></button>
+                                            </td>
+                                        </tr>
+
+                                        <tr class="border-b border-gray-200 bg-blue-50/60 print-bg-transparent">
+                                            <td></td>
+                                            <td colspan="4" class="p-2 text-right text-blue-800 print-text-black font-bold pr-4">
+                                                {{ item.name || '群組' }} 小計：
+                                            </td>
+                                            <td class="p-2 text-right text-blue-800 print-text-black font-bold border-t border-gray-300 whitespace-nowrap">
+                                                $ {{ formatNumber(getGroupSubtotal(item)) }}
+                                            </td>
+                                            <td class="p-2 text-center no-print">
+                                                <button @click="addSubItem(index)" class="text-blue-500 hover:text-blue-700 text-xs font-bold bg-white px-2 py-1 rounded shadow-sm border border-blue-200 transition" title="在群組內新增空白項目"><i class="fas fa-plus"></i> 新增</button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                            
+                            <button @click="addItem" class="no-print mt-3 w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-500 hover:text-gray-700 rounded transition">
+                                <i class="fas fa-plus"></i> 新增獨立空白項目
+                            </button>
+
+                            <div v-if="checkedItems.length > 0" class="no-print bg-blue-50 border border-blue-200 p-4 mt-4 rounded-lg flex flex-wrap items-center justify-between shadow-sm transition-all">
+                                <div class="text-blue-800 text-sm mb-2 sm:mb-0 flex items-center">
+                                    <i class="fas fa-check-square mr-2 text-blue-600 text-lg"></i> 
+                                    <span>已勾選 <strong class="text-blue-700 text-lg mx-1">{{ checkedItems.length }}</strong> 項，將組合金額：<strong class="text-blue-700 text-lg mx-1 whitespace-nowrap">$ {{ formatNumber(checkedSubtotal) }}</strong></span>
+                                </div>
+                                <div class="flex items-center gap-2 w-full sm:w-auto">
+                                    <input type="text" v-model="groupName" placeholder="輸入群組名稱 (例如：客廳木作工程)" class="flex-1 sm:w-64 border border-blue-300 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <button @click="groupCheckedItems" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold transition-colors shadow-sm flex items-center whitespace-nowrap">
+                                        <i class="fas fa-object-group mr-1"></i> 建立群組小計
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="print-avoid-break">
+                            <div class="flex justify-end mb-8 mt-4">
+                                <div class="w-64 space-y-2">
+                                    <div class="flex justify-between text-gray-600"><span>總小計：</span><span class="whitespace-nowrap">$ {{ formatNumber(subtotal) }}</span></div>
+                                    <div class="flex justify-between items-center text-gray-600">
+                                        <div class="flex items-center">
+                                            <span>稅金：</span>
+                                            <select v-model.number="form.taxRate" class="ml-2 border rounded bg-transparent no-print text-xs text-gray-800 font-medium px-1 py-0.5 border-gray-300">
+                                                <option :value="0">未稅</option>
+                                                <option :value="0.05">含稅(5%)</option>
+                                            </select>
+                                            <span class="ml-2 print-only text-xs" v-if="form.taxRate > 0">5%</span>
+                                        </div>
+                                        <span class="whitespace-nowrap">$ {{ formatNumber(taxAmount) }}</span>
+                                    </div>
+                                    <div class="flex justify-between font-bold text-xl text-gray-800 border-t-2 border-gray-800 pt-2">
+                                        <span>總計：</span><span class="whitespace-nowrap">$ {{ formatNumber(totalAmount) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="print-avoid-break mt-8">
+                            <div class="mb-12">
+                                <h4 class="font-bold text-gray-700 mb-2">備註條款：</h4>
+                                <textarea v-model="form.notes" rows="6" class="w-full text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-200"></textarea>
+                            </div>
+
+                            <footer class="flex justify-between items-end pt-4">
+                                <div class="w-1/2 flex flex-col items-center">
+                                     <div class="w-64 border-b-2 border-gray-400 h-10 mb-4"></div>
+                                     <span class="text-lg text-gray-700 font-bold">公司簽章</span>
+                                </div>
+                                
+                                <div class="w-1/2 flex flex-col items-center">
+                                     <div class="w-64 border-b-2 border-gray-400 h-10 mb-4"></div>
+                                     <span class="text-lg text-gray-700 font-bold">業主確認合約簽名</span>
+                                </div>
+                            </footer>
+                        </div>
+                        
+                        <div class="mt-8 text-center text-xs text-gray-400 pt-4 no-print">興居室內裝修設計工程有限公司 &copy; 2026</div>
+
+                        </td>
+                </tr>
+            </tbody>
+            
+            <tfoot class="print-only">
+                <tr>
+                    <td class="border-none p-0" style="height: 15mm;"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="print-page-footer print-only-flex hidden">
+            <span class="font-bold">興居室內裝修設計工程有限公司</span>
+            <span>報價單號：{{ form.quoteNo }}</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp } = Vue;
+
+    const DEFAULT_ITEMS = [
+        { name: '打石見底含清運 (不滿3坪以3坪計)', unit: '坪', price: 4000, qty: 0 },
+        { name: '打石不見底含清運 (不滿3坪以3坪計)', unit: '坪', price: 3000, qty: 0 },
+        { name: '磚牆打除含清運 (不滿3坪以3坪計)', unit: '坪', price: 5000, qty: 0 },
+        { name: 'RC牆打除含清運 (不滿3坪以3坪計)', unit: '坪', price: 6000, qty: 0 },
+        { name: 'RC廚具(僅檯櫃) 打除含清運', unit: '米', price: 10000, qty: 0 },
+        { name: '拆木作高櫃體含清運 (不滿6尺以6尺計)', unit: '尺', price: 1500, qty: 0 },
+        { name: '拆木作下廚櫃體含清運 (不滿8尺以8尺計)', unit: '尺', price: 1000, qty: 0 },
+        { name: '拆木作,輕鋼架天花板含清運 (不滿10坪以10坪計)', unit: '坪', price: 800, qty: 0 },
+        { name: '砌4吋紅磚隔間牆 (含雙面水泥粉刷)', unit: '坪', price: 13000, qty: 0 },
+        { name: '水泥粉刷,粉光 (不滿4坪以4坪計)', unit: '坪', price: 2500, qty: 0 },
+        { name: '壁貼益膠泥 貼磁磚30x60以內', unit: '坪', price: 9000, qty: 0 },
+        { name: '地板做軟底 貼磁磚50x50以內 (軟底5公分內)', unit: '坪', price: 9000, qty: 0 },
+        { name: '地板水泥砂打底 5公分內 (不滿3坪以3坪計)', unit: '坪', price: 3000, qty: 0 },
+        { name: '地板水泥砂打底 10公分內 (不滿3坪以3坪計)', unit: '坪', price: 4500, qty: 0 },
+        { name: '做防水底漆一次+彈性面漆兩次 (不滿3坪以3坪計)', unit: '坪', price: 2000, qty: 0 },
+        { name: '矽酸鈣板輕鋼架天花板 (不滿3坪以3坪計)', unit: '坪', price: 2200, qty: 0 },
+        { name: '木作矽酸鈣板天花板6mm (不滿2坪以2坪計)', unit: '坪', price: 4200, qty: 0 },
+        { name: '批AB膠透批白土(面刷水泥漆) (不滿3坪以3坪計)', unit: '坪', price: 1800, qty: 0 },
+        { name: '窗簾盒批AB膠透批白土(面刷水泥漆) (不滿8尺以8尺計)', unit: '尺', price: 300, qty: 0 },
+        { name: '冷氣盒批AB膠透批白土(面刷水泥漆) (不滿2個以2個計)', unit: '個', price: 2300, qty: 0 },
+        { name: '壁面水泥漆刷二次(不含批孔) (不滿10坪以10坪計)', unit: '坪', price: 450, qty: 0 },
+        { name: '木作6mm矽酸鈣板單面隔間 (不滿2坪以2坪計)', unit: '坪', price: 4200, qty: 0 },
+        { name: '木作6mm矽酸鈣板雙面隔間 (不滿2坪以2坪計)', unit: '坪', price: 5300, qty: 0 },
+        { name: '無裝潢室內電燈插座抽換線2.0 (包含國際牌星光大面板)', unit: '坪', price: 2000, qty: 0 },
+        { name: '浴室範圍配給排水管一套 舊改新', unit: '間', price: 25000, qty: 0 },
+        { name: '浴室衛浴設備安裝', unit: '間', price: 5500, qty: 0 },
+        { name: 'HCG和成牌基本款衛浴設備(馬桶CS130EJ+臉盆LF367SR+臉盆龍頭LF4330NE+沐浴龍頭BF3731+鏡子BA727)', unit: '套', price: 15000, qty: 0 },
+        { name: '鋁三合一通風門框+門扇', unit: '樘', price: 25000, qty: 0 }
+    ].map(item => ({ ...item, checked: false }));
+
+    const DEFAULT_NOTES = `1. 收款方式：訂金30%, 磁磚貼好60%, 尾款10%
+2. 單價皆為現金價不含稅，營業稅外加
+3. 本報價單簽約前為公司內部機密資料，非經本公司同意禁止轉傳閱
+4. 新設備有非人為損壞 一年期 公司保固
+5. 本報價單業主簽章付訂後則轉為正式合約壹式兩份
+6. 最終價格以現場實際丈量及雙方確認為準`;
+
+    createApp({
+        data() {
+            return {
+                apiUrl: localStorage.getItem('xingju_api_url') || '',
+                inputUrl: '',
+                isLoading: false,
+                isSavingNew: false, // 區分另存狀態
+                statusMsg: '',
+                cloudQuotes: [],
+                company: { contact: '', phone: '' },
+                
+                // 多版本與人員配置
+                currentUser: localStorage.getItem('xingju_user') || '建鈞',
+                showFileManager: false,
+                activeFolder: null,
+                
+                history: [],
+                historyIndex: -1,
+                isUndoing: false,
+                debounceTimer: null,
+                
+                // 拖曳狀態記錄
+                dragIndex: null,
+                dragOverIndex: null,
+                dragGroupIndex: null,
+                dragSubIndex: null,
+                dragOverSubIndex: null,
+                
+                // 彙整項目名稱
+                groupName: '',
+
+                form: {
+                    id: Date.now(),
+                    clientName: '',
+                    clientPhone: '',
+                    projectAddress: '',
+                    projectDuration: '',
+                    showProjectDuration: true, 
+                    quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
+                    date: new Date().toISOString().slice(0,10),
+                    validity: '15天',
+                    taxRate: 0.05, 
+                    notes: DEFAULT_NOTES,
+                    versionNote: '', 
+                    savedBy: localStorage.getItem('xingju_user') || '建鈞',
+                    items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
+                }
+            }
+        },
+        watch: {
+            company: {
+                handler(newVal) { localStorage.setItem('xingju_company_v3', JSON.stringify(newVal)); },
+                deep: true
+            },
+            currentUser(newVal) {
+                localStorage.setItem('xingju_user', newVal);
+                this.form.savedBy = newVal;
+            },
+            form: {
+                handler(newVal) {
+                    if (this.isUndoing) {
+                        this.isUndoing = false;
+                        return;
+                    }
+                    clearTimeout(this.debounceTimer);
+                    this.debounceTimer = setTimeout(() => {
+                        this.recordHistory();
+                    }, 500);
+                },
+                deep: true
+            }
+        },
+        computed: {
+            // 自動依照報價單號及客戶分群(資料夾視覺)
+            groupedQuotes() {
+                const groups = {};
+                this.cloudQuotes.forEach(q => {
+                    const key = q.quoteNo || '無單號';
+                    const name = q.clientName || '未命名客戶';
+                    const folderKey = `${key}_${name}`;
+
+                    if (!groups[folderKey]) {
+                        groups[folderKey] = {
+                            quoteNo: key,
+                            clientName: name,
+                            versions: [],
+                            latestDate: 0
+                        };
+                    }
+                    groups[folderKey].versions.push(q);
+                    if (q.id > groups[folderKey].latestDate) {
+                        groups[folderKey].latestDate = q.id;
+                    }
+                });
+
+                // 將每個資料夾內的版本依據時間(ID)由新到舊排序
+                Object.values(groups).forEach(g => g.versions.sort((a,b) => b.id - a.id));
+                // 將資料夾本身依照最新更新的版本排列
+                return Object.values(groups).sort((a,b) => b.latestDate - a.latestDate);
+            },
+            groupSummaries() {
+                return this.form.items
+                    .filter(item => item.isGroup)
+                    .map(group => ({
+                        name: group.name,
+                        subtotal: this.getGroupSubtotal(group)
+                    }));
+            },
+            subtotal() { 
+                return this.form.items.reduce((sum, item) => {
+                    if (item.isGroup) {
+                        return sum + this.getGroupSubtotal(item);
+                    }
+                    const effectiveQty = this.getEffectiveQty(item);
+                    return sum + (effectiveQty * item.price);
+                }, 0); 
+            },
+            taxAmount() { return Math.round(this.subtotal * this.form.taxRate); },
+            totalAmount() { return this.subtotal + this.taxAmount; },
+            
+            checkedItems() {
+                return this.form.items.filter(item => !item.isGroup && item.checked);
+            },
+            checkedSubtotal() {
+                return this.checkedItems.reduce((sum, item) => sum + (this.getEffectiveQty(item) * item.price), 0);
+            }
+        },
+        mounted() {
+            const savedCompany = localStorage.getItem('xingju_company_v3');
+            if (savedCompany) {
+                this.company = JSON.parse(savedCompany);
+            } else {
+                const oldCompany = localStorage.getItem('xingju_company_v2');
+                if (oldCompany) {
+                    const parsed = JSON.parse(oldCompany);
+                    this.company = { contact: parsed.contact, phone: parsed.phone };
+                }
+            }
+            if(this.apiUrl) this.fetchCloudData();
+            this.recordHistory(true);
+        },
+        methods: {
+            openFileManager() {
+                this.fetchCloudData();
+                this.showFileManager = true;
+            },
+            // 相容顯示舊版本總金額，避免舊資料為空
+            calculateTotal(v) {
+                if (v.savedTotalAmount) return v.savedTotalAmount;
+                if (!v.items) return 0;
+                let sub = 0;
+                v.items.forEach(item => {
+                    if (item.isGroup && item.subItems) {
+                        item.subItems.forEach(subItem => {
+                            let minQty = subItem.qty;
+                            let match = subItem.name.match(/不滿(\d+)/);
+                            if(match && subItem.qty < parseFloat(match[1])) minQty = parseFloat(match[1]);
+                            sub += minQty * subItem.price;
+                        });
+                    } else if (!item.isGroup) {
+                        let minQty = item.qty;
+                        let match = item.name.match(/不滿(\d+)/);
+                        if(match && item.qty < parseFloat(match[1])) minQty = parseFloat(match[1]);
+                        sub += minQty * item.price;
+                    }
+                });
+                return sub + Math.round(sub * (v.taxRate || 0));
+            },
+            loadVersion(v) {
+                this.form = JSON.parse(JSON.stringify(v));
+                if (this.form.items) {
+                    this.form.items.forEach(item => {
+                        if (!item.isGroup && typeof item.checked === 'undefined') item.checked = false;
+                    });
+                }
+                if (typeof this.form.showProjectDuration === 'undefined') {
+                    this.form.showProjectDuration = true;
+                }
+                
+                this.groupName = ''; 
+                this.history = [];
+                this.historyIndex = -1;
+                this.recordHistory(true);
+                this.showFileManager = false;
+                this.statusMsg = `已載入: ${v.quoteNo} - ${v.versionNote || '歷史檔'}`;
+                setTimeout(() => this.statusMsg = '', 3000);
+            },
+            getGroupSubtotal(group) {
+                if (!group.subItems) return 0;
+                return group.subItems.reduce((sum, item) => sum + (this.getEffectiveQty(item) * item.price), 0);
+            },
+            groupCheckedItems() {
+                if (!this.groupName.trim()) {
+                    alert('請輸入群組項目的名稱！');
+                    return;
+                }
+                if (!confirm('確定要將勾選的項目建立為一個群組小計嗎？')) {
+                    return;
+                }
+
+                const insertIndex = this.form.items.findIndex(item => item.checked);
+                const checkedList = this.form.items.filter(item => item.checked);
+                
+                const subItems = checkedList.map(item => {
+                    const cleanItem = { ...item };
+                    delete cleanItem.checked;
+                    return cleanItem;
+                });
+
+                const newGroup = {
+                    isGroup: true,
+                    name: this.groupName.trim(),
+                    subItems: subItems,
+                    checked: false
+                };
+
+                this.form.items = this.form.items.filter(item => !item.checked);
+                this.form.items.splice(insertIndex, 0, newGroup);
+                this.groupName = ''; 
+            },
+            ungroupItem(index) {
+                const group = this.form.items[index];
+                if (confirm(`確定要解散「${group.name}」群組嗎？(裡面的細項會恢復為獨立項目)`)) {
+                    const subItemsToRestore = group.subItems.map(item => ({...item, checked: false}));
+                    this.form.items.splice(index, 1, ...subItemsToRestore);
+                }
+            },
+            addSubItem(groupIndex) {
+                this.form.items[groupIndex].subItems.push({
+                    name: '', unit: '式', qty: 1, price: 0
+                });
+            },
+            removeSubItem(groupIndex, subIndex) {
+                const group = this.form.items[groupIndex];
+                group.subItems.splice(subIndex, 1);
+                if (group.subItems.length === 0) {
+                    this.form.items.splice(groupIndex, 1);
+                }
+            },
+            onDragStart(index, event) {
+                if (event.target.tagName.toLowerCase() === 'input') {
+                    event.preventDefault();
+                    return;
+                }
+                this.dragIndex = index;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', index);
+            },
+            onDragEnter(index) {
+                if (this.dragIndex !== null && this.dragIndex !== index) {
+                    this.dragOverIndex = index;
+                }
+            },
+            onDrop(index) {
+                if (this.dragIndex !== null && this.dragIndex !== index) {
+                    const items = this.form.items;
+                    const movedItem = items.splice(this.dragIndex, 1)[0];
+                    items.splice(index, 0, movedItem);
+                }
+                this.dragIndex = null;
+                this.dragOverIndex = null;
+            },
+            onDragEnd() {
+                this.dragIndex = null;
+                this.dragOverIndex = null;
+            },
+            onSubDragStart(groupIndex, subIndex, event) {
+                if (event.target.tagName.toLowerCase() === 'input') {
+                    event.preventDefault();
+                    return;
+                }
+                this.dragGroupIndex = groupIndex;
+                this.dragSubIndex = subIndex;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', subIndex);
+            },
+            onSubDragEnter(groupIndex, subIndex) {
+                if (this.dragGroupIndex === groupIndex && this.dragSubIndex !== null && this.dragSubIndex !== subIndex) {
+                    this.dragOverSubIndex = subIndex;
+                }
+            },
+            onSubDrop(groupIndex, subIndex, event) {
+                if (this.dragGroupIndex === groupIndex && this.dragSubIndex !== null && this.dragSubIndex !== subIndex) {
+                    const group = this.form.items[groupIndex];
+                    const movedItem = group.subItems.splice(this.dragSubIndex, 1)[0];
+                    group.subItems.splice(subIndex, 0, movedItem);
+                }
+                this.dragGroupIndex = null;
+                this.dragSubIndex = null;
+                this.dragOverSubIndex = null;
+            },
+            onSubDragEnd() {
+                this.dragGroupIndex = null;
+                this.dragSubIndex = null;
+                this.dragOverSubIndex = null;
+            },
+            getEffectiveQty(item) {
+                if (!item.qty || item.qty <= 0) return 0;
+                const match = item.name.match(/不滿(\d+)/);
+                if (match) {
+                    const minQty = parseFloat(match[1]);
+                    if (item.qty < minQty) return minQty;
+                }
+                return item.qty;
+            },
+            getConditionText(name) {
+                const match = name.match(/(\(不滿.+?\))/);
+                return match ? match[1] : '';
+            },
+            getCleanName(name) {
+                return name.replace(/\(不滿.+?\)/g, '').trim();
+            },
+            handleNameInput(item, event) {
+                const newCleanName = event.target.value;
+                const currentCondition = this.getConditionText(item.name);
+                item.name = newCleanName + (currentCondition ? ' ' + currentCondition : '');
+            },
+            recordHistory(isInit = false) {
+                const currentState = JSON.stringify(this.form);
+                if (!isInit && this.historyIndex >= 0 && this.history[this.historyIndex] === currentState) return;
+                if (this.historyIndex < this.history.length - 1) this.history = this.history.slice(0, this.historyIndex + 1);
+                this.history.push(currentState);
+                this.historyIndex++;
+                if (this.history.length > 50) {
+                    this.history.shift();
+                    this.historyIndex--;
+                }
+            },
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.isUndoing = true;
+                    this.historyIndex--;
+                    this.form = JSON.parse(this.history[this.historyIndex]);
+                }
+            },
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.isUndoing = true;
+                    this.historyIndex++;
+                    this.form = JSON.parse(this.history[this.historyIndex]);
+                }
+            },
+            formatNumber(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); },
+            saveApiUrl() {
+                if(!this.inputUrl.includes('script.google.com')) { alert('網址格式錯誤'); return; }
+                this.apiUrl = this.inputUrl;
+                localStorage.setItem('xingju_api_url', this.apiUrl);
+                this.fetchCloudData();
+            },
+            clearApi() {
+                if(confirm('確定要移除連結？之後需重新輸入網址才能讀取資料。')) {
+                    this.apiUrl = '';
+                    localStorage.removeItem('xingju_api_url');
+                    location.reload();
+                }
+            },
+            addItem() { this.form.items.push({ name: '', unit: '式', qty: 1, price: 0, checked: false }); },
+            removeItem(idx) { if(this.form.items.length > 1) this.form.items.splice(idx, 1); },
+            resetForm() {
+                if(confirm('確定要開新單嗎？目前內容將會清空。')) {
+                    this.form = {
+                        id: Date.now(),
+                        clientName: '', clientPhone: '', projectAddress: '',
+                        projectDuration: '', showProjectDuration: true,
+                        quoteNo: 'Q' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-01',
+                        date: new Date().toISOString().slice(0,10), validity: '15天', taxRate: 0.05,
+                        notes: DEFAULT_NOTES, versionNote: '', savedBy: this.currentUser,
+                        items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
+                    };
+                    this.groupName = '';
+                    this.history = [];
+                    this.historyIndex = -1;
+                    this.recordHistory(true);
+                }
+            },
+            copyQuote() {
+                if(confirm('確定要複製目前的內容為一份「全新的訂單」嗎？(系統會給予新單號)')) {
+                    this.form.id = Date.now();
+                    const todayStr = new Date().toISOString().slice(0,10);
+                    this.form.date = todayStr;
+                    this.form.quoteNo = 'Q' + todayStr.replace(/-/g,'') + '-01';
+                    this.form.versionNote = '複製新版';
+                    this.statusMsg = '已複製為新單！請修改後存檔';
+                    setTimeout(() => this.statusMsg = '', 3000);
+                    this.history = [];
+                    this.historyIndex = -1;
+                    this.recordHistory(true);
+                }
+            },
+            printQuote() { window.print(); },
+            async saveToCloud(saveAsNewVersion = false) {
+                if(!this.apiUrl) return;
+                if(!this.form.clientName) { alert('請輸入客戶名稱'); return; }
+                if(!this.currentUser) { alert('請先選擇上方的保存者'); return; }
+
+                if (saveAsNewVersion) {
+                    this.form.id = Date.now(); // 產生全新ID，但維持報價單號
+                }
+
+                // 強制寫入最後修改人與結算總金額 (方便列表檢視)
+                this.form.savedBy = this.currentUser;
+                this.form.savedTotalAmount = this.totalAmount;
+
+                this.isLoading = true;
+                this.isSavingNew = saveAsNewVersion;
+                this.statusMsg = saveAsNewVersion ? '另存新版中...' : '存檔中...';
+                try {
+                    await fetch(this.apiUrl, { method: 'POST', body: JSON.stringify(this.form) });
+                    this.statusMsg = saveAsNewVersion ? '另存新版成功！' : '存檔覆蓋成功！';
+                    setTimeout(() => this.statusMsg = '', 2000);
+                    this.fetchCloudData();
+                    if (this.activeFolder) {
+                        // 如果在資料夾檢視模式下，可以關閉或者重新整理，這裡讓它維持開啟並重整
+                        this.fetchCloudData();
+                    }
+                } catch(e) {
+                    alert('存檔失敗，請檢查網路或網址');
+                    console.error(e);
+                } finally {
+                    this.isLoading = false;
+                    this.isSavingNew = false;
+                }
+            },
+            async fetchCloudData() {
+                if(!this.apiUrl) return;
+                this.statusMsg = '同步雲端資料中...';
+                try {
+                    const res = await fetch(this.apiUrl);
+                    const data = await res.json();
+                    this.cloudQuotes = data.sort((a, b) => b.id - a.id);
+                    this.statusMsg = '';
+                } catch(e) {
+                    this.statusMsg = '讀取失敗';
+                }
+            }
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
