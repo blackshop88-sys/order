@@ -68,9 +68,20 @@
                 break-inside: avoid !important;
             }
 
-            /* 針對項目表格強化防切斷，允許表格跨頁，但不允許單一群組跨頁 */
+            /* 針對項目表格強化防切斷，允許表格跨頁 */
 .item-table { page-break-inside: auto !important; }
-.item-table tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+
+/* 【關鍵修正】：徹底解除 tr 的防切斷，放過 Chrome 的排版引擎，避免整列被吞噬 */
+.item-table tr { 
+    page-break-inside: auto !important; 
+    break-inside: auto !important; 
+}
+
+/* 將保護機制轉移到 td，避免單行文字被水平切一半，這在巢狀表格中比鎖定 tr 安全很多 */
+.item-table td { 
+    page-break-inside: avoid !important; 
+    break-inside: avoid !important; 
+}
 
             /* 每一頁底部的固定資訊，會完美嵌入 tfoot 創造出的安全空間內 */
             .print-page-footer {
