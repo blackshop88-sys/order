@@ -69,12 +69,8 @@
             }
 
             /* 針對項目表格強化防切斷，允許表格跨頁，但不允許單一群組跨頁 */
-            .item-table { page-break-inside: auto !important; }
-            .item-table tbody { 
-                page-break-inside: avoid !important; 
-                break-inside: avoid !important; 
-            }
-            .item-table tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+.item-table { page-break-inside: auto !important; }
+.item-table tr { page-break-inside: avoid !important; break-inside: avoid !important; }
 
             /* 每一頁底部的固定資訊，會完美嵌入 tfoot 創造出的安全空間內 */
             .print-page-footer {
@@ -369,7 +365,7 @@
                                         <th class="p-2 w-20 text-center no-print">操作</th>
                                     </tr>
                                 </thead>
-                                <tbody v-for="(item, index) in form.items" :key="item.id || index" class="text-sm">
+                                <tbody v-for="(item, index) in form.items" :key="item.id || index" class="text-sm" :class="{'print-avoid-break': item.isGroup}">
                                         
                                     <tr v-if="!item.isGroup" 
                                         class="border-b border-gray-200 hover:bg-gray-50 group transition-all duration-200"
@@ -596,10 +592,10 @@
             </tbody>
             
             <tfoot class="print-only">
-                <tr>
-                    <td class="border-none p-0" style="height: 15mm;"></td>
-                </tr>
-            </tfoot>
+    <tr>
+        <td class="border-none p-0" style="height: 18mm;"></td> <!-- 建議從 15mm 改為 18mm -->
+    </tr>
+</tfoot>
         </table>
 
         <div class="print-page-footer print-only-flex hidden">
